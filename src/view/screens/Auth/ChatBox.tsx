@@ -13,6 +13,7 @@ import {
     Modal,
     Linking,
     ImageBackground,
+    Pressable,
 } from 'react-native';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -68,6 +69,12 @@ const ChatBox = () => {
 
     const [isPdfVisible, setIsPdfVisible] = useState(false);
     const [pdfUri, setPdfUri] = useState<string | null>(null);
+
+    const [showMenu, setShowMenu] = useState(false);
+
+    // const [messages, setMessages] = useState([]);
+
+
 
 
 
@@ -345,6 +352,99 @@ const ChatBox = () => {
             setSending(false);
         }
     };
+
+    // const clearChat = () => {
+    //     setMessageList([]);  // Clears the actual message list
+    //     setShowMenu(false);  // Closes the menu
+    // };
+
+    const clearChat = () => {
+        Alert.alert(
+            'Clear Chat',
+            'Are you sure you want to delete all messages? This action cannot be undone.',
+            [
+                {
+                    text: 'Cancel',
+                    style: 'cancel',
+                    onPress: () => {
+                        console.log('Cancel pressed');
+                        setShowMenu(false);
+                    },
+                },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        console.log('Delete pressed');
+                        setShowMenu(false);
+
+                        if (!currentUserId) {
+                            Alert.alert('Error', 'You must be logged in');
+                            return;
+                        }
+
+                        try {
+                            // Get all message IDs to delete
+                            const { data: messagesToDelete, error: fetchError } = await supabase
+                                .from('messages')
+                                .select('id')
+                                .or(
+                                    `and(sender_id.eq.${currentUserId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${currentUserId})`
+                                );
+
+                            if (fetchError) {
+                                console.error('Error fetching messages:', fetchError);
+                                Alert.alert('Error', 'Failed to fetch messages');
+                                return;
+                            }
+
+                            if (!messagesToDelete || messagesToDelete.length === 0) {
+                                Toast.show({
+                                    type: 'info',
+                                    text1: 'No messages to delete',
+                                    position: 'top',
+                                });
+                                return;
+                            }
+
+                            console.log(`🗑️ Deleting ${messagesToDelete.length} messages...`);
+
+                            // Delete all messages
+                            const { error: deleteError } = await supabase
+                                .from('messages')
+                                .delete()
+                                .or(
+                                    `and(sender_id.eq.${currentUserId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${currentUserId})`
+                                );
+
+                            if (deleteError) {
+                                console.error('Error deleting messages:', deleteError);
+                                Alert.alert('Error', `Failed to delete messages: ${deleteError.message}`);
+                                return;
+                            }
+
+                            // Clear UI
+                            setMessageList([]);
+
+                            Toast.show({
+                                type: 'success',
+                                text1: 'Chat cleared',
+                                text2: `${messagesToDelete.length} messages deleted permanently`,
+                                position: 'top',
+                            });
+
+                            console.log('✅ Chat cleared successfully from database');
+
+                        } catch (err: any) {
+                            console.error('Unexpected error clearing chat:', err);
+                            Alert.alert('Error', err?.message || 'Something went wrong');
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
 
     // Render message bubble
     const renderMessage = ({ item }: { item: Message }) => {
@@ -736,7 +836,8 @@ const ChatBox = () => {
                                 </TouchableOpacity>
                                 <Text style={styles.title}>{userName || 'Chat'}</Text>
 
-                                <TouchableOpacity onPress={() => navigation.goBack()}>
+                                {/* <TouchableOpacity onPress={handleOptions}> */}
+                                <TouchableOpacity onPress={() => setShowMenu(true)}>
                                     <Image
                                         source={ImageName.Options}
                                         style={styles.options}
@@ -749,6 +850,68 @@ const ChatBox = () => {
                             </View>
                         </View>
                     </View>
+
+                    {/* For Clear chat */}
+                    {/* {showMenu && (
+                        <TouchableOpacity
+                            style={styles.menuOverlay}
+                            activeOpacity={1}
+                            onPress={() => setShowMenu(false)} // Closes menu when clicking outside
+                        >
+                            <TouchableOpacity
+                                style={styles.menuContainer}
+                                activeOpacity={1}
+                                onPress={(e) => e.stopPropagation()} // Prevents closing when clicking inside menu
+                            >
+                                <TouchableOpacity
+                                    onPress={clearChat}
+                                    style={styles.menuItem}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={styles.menuText}>Clear Chat</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        console.log('Cancel button pressed'); // For debugging
+                                        setShowMenu(false);
+                                    }}
+                                    style={styles.menuItem}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={styles.menuText}>Cancel</Text>
+                                </TouchableOpacity>
+                            </TouchableOpacity>
+                        </TouchableOpacity>
+                    )} */}
+
+                    {showMenu && (
+                        <View style={styles.menuOverlay}>
+                            {/* Background Click Area */}
+                            <Pressable
+                                style={styles.overlayBackground}
+                                onPress={() => setShowMenu(false)}
+                            />
+
+                            {/* Menu Box */}
+                            <View style={styles.menuContainer}>
+                                <TouchableOpacity
+                                    onPress={clearChat}
+                                    style={styles.menuItem}
+                                >
+                                    <Text style={styles.menuText}>Clear Chat</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    onPress={() => setShowMenu(false)}
+                                    style={styles.menuItem}
+                                >
+                                    <Text style={styles.menuText}>Cancel</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    )}
+
 
                     {/* Messages */}
                     <FlatList
@@ -883,15 +1046,17 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#666',
     },
+
+
     backicon: {
         width: 40,
         height: 40,
         marginLeft: -10,
     },
-    options :{
+    options: {
         width: 40,
         height: 40,
-        tintColor : 'transplarent'
+        tintColor: 'transplarent'
     },
     popbg: {
         width: '100%',
@@ -899,7 +1064,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 12,
         marginTop: 40,
-        marginLeft: '5%',
+        marginLeft: '2%',
         // borderRadius: 20,
         // backgroundColor: 'rgba(255, 255, 255, 0)',
         // backgroundColor: '#19eb2400',
@@ -1044,6 +1209,45 @@ const styles = StyleSheet.create({
         fontSize: 11,
         opacity: 0.8,
     },
+    menuOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'flex-start',
+        alignItems: 'flex-end',
+    },
+
+    overlayBackground: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+    },
+
+    menuContainer: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        paddingVertical: 8,
+        width: 160,
+        marginTop: 60,
+        marginRight: 10,
+        elevation: 5, // Android shadow
+    },
+
+    menuItem: {
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+    },
+
+    menuText: {
+        fontSize: 14,
+        color: '#000',
+    },
+
+
 });
 
 
