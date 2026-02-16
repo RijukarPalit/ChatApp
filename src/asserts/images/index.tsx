@@ -14,3 +14,5 @@ export const Google = require ('../../asserts/images/google.png') as ImageRequir
 export const Upload = require ('../../asserts/images/upload.png') as ImageRequireSource;
 export const ChatBg = require ('../../asserts/images/ChatBg.png') as ImageRequireSource;
 export const Options = require ('../../asserts/images/option.png') as ImageRequireSource;
+export const ChatIcon = require ('../../asserts/images/chatIcon.png') as ImageRequireSource;
+export const StatusIcon = require ('../../asserts/images/status.png') as ImageRequireSource;

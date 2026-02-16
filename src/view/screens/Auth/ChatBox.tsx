@@ -74,10 +74,6 @@ const ChatBox = () => {
 
     // const [messages, setMessages] = useState([]);
 
-
-
-
-
     const flatListRef = useRef<FlatList>(null);
     const channelRef = useRef<RealtimeChannel | null>(null);
 
@@ -407,7 +403,7 @@ const ChatBox = () => {
                                 return;
                             }
 
-                            console.log(`🗑️ Deleting ${messagesToDelete.length} messages...`);
+                            console.log(` Deleting ${messagesToDelete.length} messages...`);
 
                             // Delete all messages
                             const { error: deleteError } = await supabase
@@ -613,107 +609,6 @@ const ChatBox = () => {
             }
         }
     };
-
-
-    /* ================= UPLOAD DOCUMENT TO SUPABASE ================= */
-    // const uploadDocument = async (file: any) => {
-    //     if (!currentUserId) {
-    //         Alert.alert('Error', 'You must be logged in to send files');
-    //         return;
-    //     }
-
-    //     try {
-    //         setUploadingImage(true);
-
-    //         // Read file as base64
-    //         const fileUri = file.fileCopyUri || file.uri;
-    //         const response = await fetch(fileUri);
-    //         const blob = await response.blob();
-
-    //         // Convert blob to base64
-    //         const reader = new FileReader();
-    //         reader.readAsDataURL(blob);
-
-    //         reader.onloadend = async () => {
-    //             const base64data = reader.result as string;
-    //             // const base64 = base64data.split(',')[1];
-    //              const base64 = await RNFS.readFile(fileUri, 'base64');
-
-    //             // Determine file type
-    //             const fileExt = file.name?.split('.').pop()?.toLowerCase() || 'file';
-    //             const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt);
-
-    //             // Create unique filename
-    //             const fileName = `${isImage ? 'images' : 'documents'}/${currentUserId}/${Date.now()}.${fileExt}`;
-
-    //             // Decode base64 to array buffer
-    //             const arrayBuffer = decode(base64);
-
-    //             // Determine bucket
-    //             const bucket = isImage ? 'avatars' : 'chat-files';
-
-    //             // Upload to Supabase Storage
-    //             const { error: uploadError } = await supabase.storage
-    //                 .from(bucket)
-    //                 .upload(fileName, arrayBuffer, {
-    //                     contentType: file.type || `application/${fileExt}`,
-    //                     upsert: true,
-    //                 });
-
-    //             if (uploadError) {
-    //                 console.log('Upload error:', uploadError);
-    //                 Alert.alert('Error', `Failed to upload: ${uploadError.message}`);
-    //                 return;
-    //             }
-
-    //             // Get public URL
-    //             const { data: urlData } = supabase.storage
-    //                 .from(bucket)
-    //                 .getPublicUrl(fileName);
-
-    //             const publicUrl = urlData.publicUrl;
-
-    //             // Send message with file URL
-    //             const messageData: any = {
-    //                 sender_id: currentUserId,
-    //                 receiver_id: receiverId,
-    //                 message_text: '',
-    //             };
-
-    //             if (isImage) {
-    //                 messageData.image_url = publicUrl;
-    //             } else {
-    //                 messageData.file_url = publicUrl;
-    //                 messageData.file_name = file.name;
-    //                 messageData.file_type = fileExt;
-    //             }
-
-    //             const { error: dbError } = await supabase
-    //                 .from('messages')
-    //                 .insert([messageData]);
-
-    //             if (dbError) {
-    //                 console.log('Database insert error:', dbError);
-    //                 Alert.alert('Error', 'Failed to send file');
-    //                 return;
-    //             }
-
-    //             console.log('✅ File sent successfully');
-    //             Toast.show({
-    //                 type: 'success',
-    //                 text1: isImage ? 'Image sent!' : 'File sent!',
-    //                 position: 'top',
-    //             });
-    //         };
-
-    //     } catch (error: any) {
-    //         console.log('Upload failed:', error);
-    //         Alert.alert('Error', error?.message || 'Something went wrong');
-    //     } finally {
-    //         setUploadingImage(false);
-    //     }
-    // };
-
     const uploadDocument = async (file: any) => {
         if (!currentUserId) {
             Alert.alert('Error', 'User not authenticated');
@@ -852,39 +747,6 @@ const ChatBox = () => {
                     </View>
 
                     {/* For Clear chat */}
-                    {/* {showMenu && (
-                        <TouchableOpacity
-                            style={styles.menuOverlay}
-                            activeOpacity={1}
-                            onPress={() => setShowMenu(false)} // Closes menu when clicking outside
-                        >
-                            <TouchableOpacity
-                                style={styles.menuContainer}
-                                activeOpacity={1}
-                                onPress={(e) => e.stopPropagation()} // Prevents closing when clicking inside menu
-                            >
-                                <TouchableOpacity
-                                    onPress={clearChat}
-                                    style={styles.menuItem}
-                                    activeOpacity={0.7}
-                                >
-                                    <Text style={styles.menuText}>Clear Chat</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    onPress={() => {
-                                        console.log('Cancel button pressed'); // For debugging
-                                        setShowMenu(false);
-                                    }}
-                                    style={styles.menuItem}
-                                    activeOpacity={0.7}
-                                >
-                                    <Text style={styles.menuText}>Cancel</Text>
-                                </TouchableOpacity>
-                            </TouchableOpacity>
-                        </TouchableOpacity>
-                    )} */}
-
                     {showMenu && (
                         <View style={styles.menuOverlay}>
                             {/* Background Click Area */}
@@ -1051,12 +913,13 @@ const styles = StyleSheet.create({
     backicon: {
         width: 40,
         height: 40,
-        marginLeft: -10,
+        marginLeft: -15,
     },
     options: {
         width: 40,
         height: 40,
-        tintColor: 'transplarent'
+        tintColor: 'transplarent',
+        marginLeft: 30,
     },
     popbg: {
         width: '100%',
