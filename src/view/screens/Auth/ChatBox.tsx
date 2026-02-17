@@ -32,7 +32,12 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { wp } from '../../../utils/dimention';
 
 
-
+interface Reaction {
+    id: string;
+    message_id: string;
+    user_id: string;
+    emoji: string;
+}
 
 interface Message {
     id: string;
@@ -45,6 +50,7 @@ interface Message {
     file_url?: string;
     file_name?: string;
     file_type?: string;
+    reactions?: Reaction[];
 }
 
 interface RouteParams {
@@ -69,6 +75,10 @@ const ChatBox = () => {
 
     const [isPdfVisible, setIsPdfVisible] = useState(false);
     const [pdfUri, setPdfUri] = useState<string | null>(null);
+
+    const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+    const [reactionPickerVisible, setReactionPickerVisible] = useState(false);
+
 
     const [showMenu, setShowMenu] = useState(false);
 
@@ -141,7 +151,7 @@ const ChatBox = () => {
             if (user) {
                 setCurrentUserId(user.id);
 
-                // 🔥 Fetch user name from profiles table
+                // Fetch user name from profiles table
                 const { data: profileData, error: profileError } = await supabase
                     .from('user')
                     .select('name')
@@ -167,6 +177,61 @@ const ChatBox = () => {
     };
 
 
+    // const addReaction = async (emoji: string) => {
+    //     if (!currentUserId || !selectedMessageId) return;
+
+    //     try {
+    //         await supabase
+    //             .from('message_reactions')
+    //             .insert([{
+    //                 message_id: selectedMessageId,
+    //                 user_id: currentUserId,
+    //                 emoji: emoji,
+    //             }]);
+
+    //         setReactionPickerVisible(false);
+    //         setSelectedMessageId(null);
+    //     } catch (error) {
+    //         console.log('Reaction error:', error);
+    //     }
+    // };
+
+    const addReaction = async (messageId: string, emoji: string) => {
+        try {
+            const { data, error } = await supabase
+                .from('message_reactions')
+                .insert([{
+                    message_id: messageId,
+                    user_id: currentUserId,
+                    emoji: emoji,
+                }])
+                .select()
+                .single();
+
+            if (error) {
+                console.error("Reaction error:", error);
+                return;
+            }
+
+            // ✅ INSTANT UI UPDATE
+            setMessageList(prev =>
+                prev.map(msg =>
+                    msg.id === messageId
+                        ? {
+                            ...msg,
+                            reactions: [...(msg.reactions || []), data],
+                        }
+                        : msg
+                )
+            );
+
+
+        } catch (err) {
+            console.error("Unexpected error:", err);
+        }
+    };
+
+
     // Fetch all messages between current user and receiver
     const fetchMessages = async (userId: string) => {
         try {
@@ -174,41 +239,35 @@ const ChatBox = () => {
 
             const { data, error } = await supabase
                 .from('messages')
-                .select('*')
+                .select('*, message_reactions(*)')
                 .or(`and(sender_id.eq.${userId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${userId})`)
                 .order('created_at', { ascending: false });
 
             if (error) {
                 console.error('Error fetching messages:', error);
-                Toast.show({
-                    type: 'error',
-                    text1: 'Error',
-                    text2: 'Failed to load messages',
-                    position: 'top',
-                });
                 return;
             }
 
-            console.log(' Fetched messages:', data?.length || 0);
-            setMessageList(data || []);
+            const formattedMessages = data?.map((msg: any) => ({
+                ...msg,
+                reactions: msg.message_reactions || [],
+            }));
 
-            // Mark received messages as read
+            console.log("Formatted:", formattedMessages);
+
+            setMessageList(formattedMessages || []);
+
             if (data && data.length > 0) {
                 markMessagesAsRead(userId);
             }
 
-        } catch (err: any) {
+        } catch (err) {
             console.error('Unexpected error:', err);
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Failed to load messages',
-                position: 'top',
-            });
         } finally {
             setLoading(false);
         }
     };
+
 
     // Mark all received messages as read
     const markMessagesAsRead = async (userId: string) => {
@@ -455,107 +514,216 @@ const ChatBox = () => {
             minute: '2-digit',
         });
 
+        // return (
+        //     <View style={[styles.messageBubble, bubbleStyle]}>
+        //         {/* Display image if exists */}
+        //         {/* {item.image_url && (
+        //             <Image
+        //                 source={{ uri: item.image_url }}
+        //                 style={styles.messageImage}
+        //                 resizeMode="cover"
+        //             />
+        //         )} */}
+
+        //         {item.image_url && (
+        //             <TouchableOpacity
+        //                 activeOpacity={0.9}
+        //                 onPress={() => {
+        //                     setImageViewerUri(item.image_url!);
+        //                     setIsImageViewerVisible(true);
+        //                 }}
+        //             >
+        //                 <Image
+        //                     source={{ uri: item.image_url }}
+        //                     style={styles.messageImage}
+        //                     resizeMode="cover"
+        //                 />
+        //             </TouchableOpacity>
+        //         )}
+
+
+        //         {/* Display file if exists */}
+        //         {/* {item.file_url && (
+        //             <View style={styles.fileContainer}>
+        //                 <Text style={styles.fileIcon}>📄</Text>
+        //                 <View style={styles.fileInfo}>
+        //                     <Text style={styles.fileName} numberOfLines={1}>
+        //                         {item.file_name || 'Document'}
+        //                     </Text>
+        //                     <Text style={styles.fileType}>
+        //                         {item.file_type?.toUpperCase() || 'FILE'}
+        //                     </Text>
+        //                 </View>
+        //             </View>
+        //         )} */}
+
+        //         {/* Display file if exists */}
+        //         {item.file_url && (
+        //             <TouchableOpacity
+        //                 activeOpacity={0.8}
+        //                 onPress={() => {
+        //                     if (item.file_type === 'pdf') {
+        //                         setPdfUri(item.file_url!);
+        //                         setIsPdfVisible(true);
+        //                     } else {
+        //                         Alert.alert("Open File", "Would you like to open this file in your browser?", [
+        //                             { text: "Cancel", style: "cancel" },
+        //                             { text: "Open", onPress: () => Linking.openURL(item.file_url!) }
+        //                         ]);
+        //                     }
+        //                 }}
+        //                 style={styles.fileContainer}
+        //             >
+        //                 <Text style={styles.fileIcon}>{item.file_type === 'pdf' ? '📕' : '📄'}</Text>
+        //                 <View style={styles.fileInfo}>
+        //                     <Text style={styles.fileName} numberOfLines={1}>
+        //                         {item.file_name || 'Document'}
+        //                     </Text>
+        //                     <Text style={styles.fileType}>
+        //                         {item.file_type?.toUpperCase() || 'FILE'}
+        //                     </Text>
+        //                 </View>
+        //             </TouchableOpacity>
+        //         )}
+
+        //         {/* Display text if exists */}
+        //         {/* {item.message_text && (
+        //             <Text style={styles.messageText}>{item.message_text}</Text>
+        //         )}
+
+        //         <Text style={styles.messageTime}>{messageTime}</Text> */}
+
+        //         {item.message_text && (
+        //             <Text
+        //                 style={[
+        //                     styles.messageText,
+        //                     { color: isMine ? '#fff' : '#000' }
+        //                 ]}
+        //             >
+        //                 {item.message_text}
+        //             </Text>
+        //         )}
+
+        //         <Text
+        //             style={[
+        //                 styles.messageTime,
+        //                 { color: isMine ? '#fff' : '#000' }
+        //             ]}
+        //         >
+        //             {messageTime}
+        //         </Text>
+
+        //     </View>
+        // );
+
         return (
-            <View style={[styles.messageBubble, bubbleStyle]}>
-                {/* Display image if exists */}
-                {/* {item.image_url && (
-                    <Image
-                        source={{ uri: item.image_url }}
-                        style={styles.messageImage}
-                        resizeMode="cover"
-                    />
-                )} */}
+            <View style={{ marginVertical: 4 }}>
+                <TouchableOpacity
+                    activeOpacity={0.8}
+                    onLongPress={() => {
+                        setSelectedMessageId(item.id);
+                        setReactionPickerVisible(true);
+                    }}
+                    style={[styles.messageBubble, bubbleStyle]}
+                >
+                    {item.image_url && (
+                        <TouchableOpacity
+                            activeOpacity={0.9}
+                            onPress={() => {
+                                setImageViewerUri(item.image_url!);
+                                setIsImageViewerVisible(true);
+                            }}
+                        >
+                            <Image
+                                source={{ uri: item.image_url }}
+                                style={styles.messageImage}
+                                resizeMode="cover"
+                            />
+                        </TouchableOpacity>
+                    )}
 
-                {item.image_url && (
-                    <TouchableOpacity
-                        activeOpacity={0.9}
-                        onPress={() => {
-                            setImageViewerUri(item.image_url!);
-                            setIsImageViewerVisible(true);
-                        }}
-                    >
-                        <Image
-                            source={{ uri: item.image_url }}
-                            style={styles.messageImage}
-                            resizeMode="cover"
-                        />
-                    </TouchableOpacity>
-                )}
-
-
-                {/* Display file if exists */}
-                {/* {item.file_url && (
-                    <View style={styles.fileContainer}>
-                        <Text style={styles.fileIcon}>📄</Text>
-                        <View style={styles.fileInfo}>
-                            <Text style={styles.fileName} numberOfLines={1}>
-                                {item.file_name || 'Document'}
+                    {item.file_url && (
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => {
+                                if (item.file_type === 'pdf') {
+                                    setPdfUri(item.file_url!);
+                                    setIsPdfVisible(true);
+                                } else {
+                                    Linking.openURL(item.file_url!);
+                                }
+                            }}
+                            style={styles.fileContainer}
+                        >
+                            <Text style={styles.fileIcon}>
+                                {item.file_type === 'pdf' ? '📕' : '📄'}
                             </Text>
-                            <Text style={styles.fileType}>
-                                {item.file_type?.toUpperCase() || 'FILE'}
-                            </Text>
-                        </View>
-                    </View>
-                )} */}
+                            <View style={styles.fileInfo}>
+                                <Text style={styles.fileName} numberOfLines={1}>
+                                    {item.file_name || 'Document'}
+                                </Text>
+                                <Text style={styles.fileType}>
+                                    {item.file_type?.toUpperCase() || 'FILE'}
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+                    )}
 
-                {/* Display file if exists */}
-                {item.file_url && (
-                    <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={() => {
-                            if (item.file_type === 'pdf') {
-                                setPdfUri(item.file_url!);
-                                setIsPdfVisible(true);
-                            } else {
-                                Alert.alert("Open File", "Would you like to open this file in your browser?", [
-                                    { text: "Cancel", style: "cancel" },
-                                    { text: "Open", onPress: () => Linking.openURL(item.file_url!) }
-                                ]);
-                            }
-                        }}
-                        style={styles.fileContainer}
-                    >
-                        <Text style={styles.fileIcon}>{item.file_type === 'pdf' ? '📕' : '📄'}</Text>
-                        <View style={styles.fileInfo}>
-                            <Text style={styles.fileName} numberOfLines={1}>
-                                {item.file_name || 'Document'}
-                            </Text>
-                            <Text style={styles.fileType}>
-                                {item.file_type?.toUpperCase() || 'FILE'}
-                            </Text>
-                        </View>
-                    </TouchableOpacity>
-                )}
+                    {item.message_text && (
+                        <Text
+                            style={[
+                                styles.messageText,
+                                { color: isMine ? '#fff' : '#000' }
+                            ]}
+                        >
+                            {item.message_text}
+                        </Text>
+                    )}
 
-                {/* Display text if exists */}
-                {/* {item.message_text && (
-                    <Text style={styles.messageText}>{item.message_text}</Text>
-                )}
-
-                <Text style={styles.messageTime}>{messageTime}</Text> */}
-
-                {item.message_text && (
                     <Text
                         style={[
-                            styles.messageText,
+                            styles.messageTime,
                             { color: isMine ? '#fff' : '#000' }
                         ]}
                     >
-                        {item.message_text}
+                        {messageTime}
                     </Text>
+                </TouchableOpacity>
+
+                {/* 👇 REACTIONS DISPLAY */}
+                {item.reactions && item.reactions.length > 0 && (
+                    <View
+                        style={{
+                            flexDirection: 'row',
+                            marginTop: 4,
+                            alignSelf: isMine ? 'flex-end' : 'flex-start',
+                            marginHorizontal: 10,
+                        }}
+                    >
+                        {Object.entries(
+                            item.reactions.reduce((acc: any, r) => {
+                                acc[r.emoji] = (acc[r.emoji] || 0) + 1;
+                                return acc;
+                            }, {})
+                        ).map(([emoji, count]) => (
+                            <View
+                                key={emoji}
+                                style={{
+                                    backgroundColor: '#eee',
+                                    borderRadius: 12,
+                                    paddingHorizontal: 8,
+                                    paddingVertical: 3,
+                                    marginRight: 5,
+                                }}
+                            >
+                                <Text>{emoji} {count}</Text>
+                            </View>
+                        ))}
+                    </View>
                 )}
-
-                <Text
-                    style={[
-                        styles.messageTime,
-                        { color: isMine ? '#fff' : '#000' }
-                    ]}
-                >
-                    {messageTime}
-                </Text>
-
             </View>
         );
+
     };
 
 
@@ -881,6 +1049,50 @@ const ChatBox = () => {
                     </View>
                 </Modal>
             </View>
+
+            <Modal
+                visible={reactionPickerVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setReactionPickerVisible(false)}
+            >
+                <Pressable
+                    style={{
+                        flex: 1,
+                        backgroundColor: 'rgba(0,0,0,0.3)',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                    }}
+                    onPress={() => setReactionPickerVisible(false)}
+                >
+                    <View
+                        style={{
+                            flexDirection: 'row',
+                            backgroundColor: '#fff',
+                            padding: 15,
+                            borderRadius: 30,
+                        }}
+                    >
+                        {['👍', '❤️', '😂', '😮', '😢', '🔥'].map((emoji) => (
+                            <TouchableOpacity
+                                key={emoji}
+                                onPress={() => {
+                                    if (selectedMessageId) {
+                                        addReaction(selectedMessageId, emoji);
+                                        setReactionPickerVisible(false);
+                                        setSelectedMessageId(null);
+                                    }
+                                }}
+                                style={{ marginHorizontal: 8 }}
+                            >
+                                <Text style={{ fontSize: 26 }}>{emoji}</Text>
+                            </TouchableOpacity>
+                        ))}
+
+                    </View>
+                </Pressable>
+            </Modal>
+
         </ImageBackground>
     );
 };
