@@ -109,7 +109,7 @@ const Splash = () => {
 
   const checkAppState = async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 300000))
+      await new Promise(resolve => setTimeout(resolve, 3000))
 
       const seenOnboarding = await hasSeenOnboarding()
 

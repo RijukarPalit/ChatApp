@@ -496,7 +496,7 @@ const ForgotPassword: React.FC = () => {
                                             <>
                                                 <WWTextInput
                                                     label="Verification Code"
-                                                    placeholder="Enter 6-digit code"
+                                                    placeholder="Enter digit code"
                                                     value={otp}
                                                     onChangeText={setOtp}
                                                     keyboardType="number-pad"

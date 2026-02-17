@@ -114,30 +114,6 @@ const ChatBox = () => {
         }
     };
 
-    // Get current logged-in user
-    // const getCurrentUser = async () => {
-    //     try {
-    //         const { data: { user }, error } = await supabase.auth.getUser();
-
-    //         if (error) {
-    //             console.error('Error getting user:', error);
-    //             Alert.alert('Error', 'Failed to authenticate user');
-    //             return null;
-    //         }
-    //         if (user) {
-    //             setCurrentUserId(user.id);
-    //             console.log('Current User ID:', user.id);
-    //             return user;
-    //         }
-
-    //         Alert.alert('Error', 'You must be logged in to chat');
-    //         return null;
-    //     } catch (err) {
-    //         console.error('Unexpected error getting user:', err);
-    //         return null;
-    //     }
-    // };
-
     const getCurrentUser = async () => {
         try {
             const { data: { user }, error } = await supabase.auth.getUser();
@@ -514,107 +490,6 @@ const ChatBox = () => {
             minute: '2-digit',
         });
 
-        // return (
-        //     <View style={[styles.messageBubble, bubbleStyle]}>
-        //         {/* Display image if exists */}
-        //         {/* {item.image_url && (
-        //             <Image
-        //                 source={{ uri: item.image_url }}
-        //                 style={styles.messageImage}
-        //                 resizeMode="cover"
-        //             />
-        //         )} */}
-
-        //         {item.image_url && (
-        //             <TouchableOpacity
-        //                 activeOpacity={0.9}
-        //                 onPress={() => {
-        //                     setImageViewerUri(item.image_url!);
-        //                     setIsImageViewerVisible(true);
-        //                 }}
-        //             >
-        //                 <Image
-        //                     source={{ uri: item.image_url }}
-        //                     style={styles.messageImage}
-        //                     resizeMode="cover"
-        //                 />
-        //             </TouchableOpacity>
-        //         )}
-
-
-        //         {/* Display file if exists */}
-        //         {/* {item.file_url && (
-        //             <View style={styles.fileContainer}>
-        //                 <Text style={styles.fileIcon}>📄</Text>
-        //                 <View style={styles.fileInfo}>
-        //                     <Text style={styles.fileName} numberOfLines={1}>
-        //                         {item.file_name || 'Document'}
-        //                     </Text>
-        //                     <Text style={styles.fileType}>
-        //                         {item.file_type?.toUpperCase() || 'FILE'}
-        //                     </Text>
-        //                 </View>
-        //             </View>
-        //         )} */}
-
-        //         {/* Display file if exists */}
-        //         {item.file_url && (
-        //             <TouchableOpacity
-        //                 activeOpacity={0.8}
-        //                 onPress={() => {
-        //                     if (item.file_type === 'pdf') {
-        //                         setPdfUri(item.file_url!);
-        //                         setIsPdfVisible(true);
-        //                     } else {
-        //                         Alert.alert("Open File", "Would you like to open this file in your browser?", [
-        //                             { text: "Cancel", style: "cancel" },
-        //                             { text: "Open", onPress: () => Linking.openURL(item.file_url!) }
-        //                         ]);
-        //                     }
-        //                 }}
-        //                 style={styles.fileContainer}
-        //             >
-        //                 <Text style={styles.fileIcon}>{item.file_type === 'pdf' ? '📕' : '📄'}</Text>
-        //                 <View style={styles.fileInfo}>
-        //                     <Text style={styles.fileName} numberOfLines={1}>
-        //                         {item.file_name || 'Document'}
-        //                     </Text>
-        //                     <Text style={styles.fileType}>
-        //                         {item.file_type?.toUpperCase() || 'FILE'}
-        //                     </Text>
-        //                 </View>
-        //             </TouchableOpacity>
-        //         )}
-
-        //         {/* Display text if exists */}
-        //         {/* {item.message_text && (
-        //             <Text style={styles.messageText}>{item.message_text}</Text>
-        //         )}
-
-        //         <Text style={styles.messageTime}>{messageTime}</Text> */}
-
-        //         {item.message_text && (
-        //             <Text
-        //                 style={[
-        //                     styles.messageText,
-        //                     { color: isMine ? '#fff' : '#000' }
-        //                 ]}
-        //             >
-        //                 {item.message_text}
-        //             </Text>
-        //         )}
-
-        //         <Text
-        //             style={[
-        //                 styles.messageTime,
-        //                 { color: isMine ? '#fff' : '#000' }
-        //             ]}
-        //         >
-        //             {messageTime}
-        //         </Text>
-
-        //     </View>
-        // );
 
         return (
             <View style={{ marginVertical: 4 }}>
@@ -886,38 +761,25 @@ const ChatBox = () => {
                     keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
                 >
                     {/* Top Bar */}
-                    <View style={styles.popbg}>
-                        <View style={styles.rowContainer}>
-                            {/* <View style={{ left: -30, top: -40 }} /> */}
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: wp(20) }}>
-                                <TouchableOpacity onPress={() => navigation.goBack()}>
-                                    <Image
-                                        // source={require('../../../../asserts/images/back.png')}
-                                        source={ImageName.Back}
-                                        style={styles.backicon}
-                                    />
-                                </TouchableOpacity>
-                                <Text style={styles.title}>{userName || 'Chat'}</Text>
+                    {/* <View style={styles.popbg}> */}
+                    {/* Top Bar */}
+                    <View style={styles.rowContainer}>
+                        <TouchableOpacity onPress={() => navigation.goBack()}>
+                            <Image source={ImageName.Back} style={styles.backicon} />
+                        </TouchableOpacity>
 
-                                {/* <TouchableOpacity onPress={handleOptions}> */}
-                                <TouchableOpacity onPress={() => setShowMenu(true)}>
-                                    <Image
-                                        source={ImageName.Options}
-                                        style={styles.options}
-                                    />
-                                </TouchableOpacity>
-                            </View>
+                        <Text style={styles.title}>{userName || 'Chat'}</Text>
 
-                            <View style={styles.profileSection}>
-                                {/* Add back button or menu here */}
-                            </View>
-                        </View>
+                        <TouchableOpacity onPress={() => setShowMenu(true)}>
+                            <Image source={ImageName.Options} style={styles.options} />
+                        </TouchableOpacity>
                     </View>
+                    {/* </View> */}
 
                     {/* For Clear chat */}
                     {showMenu && (
                         <View style={styles.menuOverlay}>
-                            {/* Background Click Area */}
+                            {/* Closes menu when tapping outside */}
                             <Pressable
                                 style={styles.overlayBackground}
                                 onPress={() => setShowMenu(false)}
@@ -932,11 +794,14 @@ const ChatBox = () => {
                                     <Text style={styles.menuText}>Clear Chat</Text>
                                 </TouchableOpacity>
 
+                                <View style={styles.menuDivider} />
+
                                 <TouchableOpacity
                                     onPress={() => setShowMenu(false)}
                                     style={styles.menuItem}
+                                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                                 >
-                                    <Text style={styles.menuText}>Cancel</Text>
+                                    <Text style={[styles.menuText, { color: '#888' }]}>Cancel</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -1120,26 +985,13 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#666',
     },
-
-
-    backicon: {
-        width: 40,
-        height: 40,
-        marginLeft: -15,
-    },
-    options: {
-        width: 40,
-        height: 40,
-        tintColor: 'transplarent',
-        marginLeft: 30,
-    },
     popbg: {
         width: '100%',
         height: 80,
-        paddingHorizontal: 16,
+        // paddingHorizontal: 16,
         paddingVertical: 12,
         marginTop: 40,
-        marginLeft: '2%',
+        marginLeft: '-5%',
         // borderRadius: 20,
         // backgroundColor: 'rgba(255, 255, 255, 0)',
         // backgroundColor: '#19eb2400',
@@ -1148,14 +1000,29 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        marginTop: 40,                    
+    },
+    title: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#000',                   
+        textAlign: 'center',
+        flex: 1,                         
+    },
+    backicon: {
+        width: 36,
+        height: 36,
+    },
+    options: {
+        width: 36,
+        height: 36,
+        // ← tintColor: 'transparent' REMOVED — this was hiding the icon!
     },
     profileSection: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        left: -50,
-        top: -10,
-    },
+        // leave empty or remove entirely
+    }, // empty — remove or leave blank
     popBtn: {
         height: 40,
         width: 40,
@@ -1166,8 +1033,8 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#DA70D6',
     },
-    icon: { width: 24, height: 24, tintColor: '#fff' },
-    icon2: { width: 34, height: 34 },
+    icon: { width: 20, height: 20, tintColor: '#fff' },
+    icon2: { width: 20, height: 20 },
     messageBar: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -1234,14 +1101,6 @@ const styles = StyleSheet.create({
         marginTop: 4,
         alignSelf: 'flex-end',
     },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        // color: '#000',
-        color: 'transparent',
-        marginBottom: 10,
-        textAlign: 'center',
-    },
     emptyContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -1284,33 +1143,6 @@ const styles = StyleSheet.create({
         fontSize: 11,
         opacity: 0.8,
     },
-    menuOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        justifyContent: 'flex-start',
-        alignItems: 'flex-end',
-    },
-
-    overlayBackground: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-    },
-
-    menuContainer: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        paddingVertical: 8,
-        width: 160,
-        marginTop: 60,
-        marginRight: 10,
-        elevation: 5, // Android shadow
-    },
 
     menuItem: {
         paddingVertical: 12,
@@ -1320,6 +1152,44 @@ const styles = StyleSheet.create({
     menuText: {
         fontSize: 14,
         color: '#000',
+    },
+
+    menuOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'flex-start',
+        alignItems: 'flex-end',
+        zIndex: 999,             
+    },
+    overlayBackground: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 1,               
+    },
+    menuContainer: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        paddingVertical: 8,
+        width: 160,
+        marginTop: 60,
+        marginRight: 10,
+        elevation: 5,
+        zIndex: 2,                
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 6,
+    },
+    menuDivider: {
+        height: 1,
+        backgroundColor: '#f0f0f0',
+        marginHorizontal: 8,
     },
 
 
