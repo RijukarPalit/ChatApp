@@ -12,6 +12,7 @@ import CustomToast from './src/view/components/CustomToast'
 import Toast from 'react-native-toast-message'
 import messaging from '@react-native-firebase/messaging'
 import notificationService from './src/utils/notificationService'
+import { ChatBackgroundProvider } from './src/context/ChangeBackgrounContext'
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -81,6 +82,7 @@ const App = () => {
 
   return (
     <>
+    <ChatBackgroundProvider>
       <NavigationContainer
         ref={navigationRef}
         onReady={() => {
@@ -127,6 +129,7 @@ const App = () => {
           />
         </Stack.Navigator>
       </NavigationContainer>
+      </ChatBackgroundProvider>
 
       <Toast config={CustomToast} />
     </>

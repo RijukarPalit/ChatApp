@@ -1,5 +1,4 @@
 import { ImageRequireSource } from "react-native";
-
 export const Back = require ('../../asserts/images/back.png') as ImageRequireSource;
 export const Background = require ('../../asserts/images/Bg.png') as ImageRequireSource;
 export const Biometric = require ('../../asserts/images/bioMetric.png') as ImageRequireSource;
@@ -19,3 +18,6 @@ export const StatusIcon = require ('../../asserts/images/status.png') as ImageRe
 export const Info = require ('../../asserts/images/info.png') as ImageRequireSource;
 export const NewSplash = require ('../../asserts/images/NewChatSplash.png') as ImageRequireSource;
 export const NewChatSplash = require ('../../asserts/images/SplashScreenNew.png') as ImageRequireSource;
+export const ChatBg2 = require ('../../asserts/images/chatBg2.jpg') as ImageRequireSource;
+export const ChatBg3 = require ('../../asserts/images/ChatBg3.jpg') as ImageRequireSource;
+export const ChatBg4 = require ('../../asserts/images/ChatBg4.jpg') as ImageRequireSource;

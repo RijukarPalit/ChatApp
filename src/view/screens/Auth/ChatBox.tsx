@@ -30,6 +30,7 @@ import ImageView from "react-native-image-viewing";
 import Pdf from 'react-native-pdf';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { wp } from '../../../utils/dimention';
+import { useChatBackground } from '../../../context/ChangeBackgrounContext';
 
 
 interface Reaction {
@@ -78,6 +79,9 @@ const ChatBox = () => {
 
     const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
     const [reactionPickerVisible, setReactionPickerVisible] = useState(false);
+
+    const { background } = useChatBackground();
+
 
 
     const [showMenu, setShowMenu] = useState(false);
@@ -749,7 +753,8 @@ const ChatBox = () => {
 
     return (
         <ImageBackground
-            source={ImageName.ChatBg}
+            // source={ImageName.ChatBg}
+            source={background}
             style={styles.backgroundImage}
             resizeMode="cover"
         >

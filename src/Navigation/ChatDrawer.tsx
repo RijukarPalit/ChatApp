@@ -5,6 +5,7 @@ import Settings from '../view/screens/Auth/Drawer Navigation/Settings'
 import MainTabs from './MainTabs'
 import About from '../view/screens/Auth/Drawer Navigation/About'
 import Icon from 'react-native-vector-icons/MaterialIcons'
+import ChangeBackground from '../view/screens/Auth/ChangeBackground'
 
 const Drawer = createDrawerNavigator()
 
@@ -16,7 +17,8 @@ const ChatDrawer = () => {
         drawerPosition: 'right',
         drawerStyle: {
           width: '60%',
-          backgroundColor: '#fff',
+          // backgroundColor: '#fff',
+          experimental_backgroundImage : 'linear-gradient(to bottom,rgb(239, 238, 252),rgb(160, 155, 236))',
         },
         drawerActiveTintColor: '#4238C5',
         drawerInactiveTintColor: '#666',
@@ -70,6 +72,18 @@ const ChatDrawer = () => {
           drawerLabel: 'Settings',
           drawerIcon: ({ color, size }) => (
             <Icon name="settings" size={size} color={color} />
+          ),
+        }}
+      />
+
+      {/* Change Theme */}
+      <Drawer.Screen
+        name="ChangeBackground"
+        component={ChangeBackground}
+        options={{
+          drawerLabel: 'Change Background',
+          drawerIcon: ({ color, size }) => (
+            <Icon name="palette" size={size} color={color} />
           ),
         }}
       />

@@ -67,8 +67,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   backicon: {
-    width: 24,
-    height: 24,
+    width: 35,
+    height: 35,
   },
   content: {
     flex: 1,
@@ -81,3 +81,41 @@ const styles = StyleSheet.create({
     color: '#666',
   },
 })
+
+
+
+// import React, { useEffect, useState } from 'react';
+// import { View, StyleSheet } from 'react-native';
+// import StoryList from '../../../components/StoryList';
+// import supabase from '../../../../utils/supabase';
+// // import supabase from '../../../utils/supabase';
+// // import StoryList from '../../components/StoryList';
+
+// const Status = () => {
+//     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+//     useEffect(() => {
+//         const getUser = async () => {
+//             const { data: { user } } = await supabase.auth.getUser();
+//             if (user) setCurrentUserId(user.id);
+//         };
+//         getUser();
+//     }, []);
+
+//     return (
+//         <View style={styles.container}>
+//             {currentUserId && (
+//                 <StoryList currentUserId={currentUserId} />
+//             )}
+//         </View>
+//     );
+// };
+
+// export default Status;
+
+// const styles = StyleSheet.create({
+//     container: {
+//         flex: 1,
+//         backgroundColor: '#fff',
+//     },
+// });
