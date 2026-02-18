@@ -13,7 +13,7 @@ import { useNavigation } from '@react-navigation/native'
 import { ImageName } from '../../../../asserts'
 import { hp, wp } from '../../../../utils/dimention'
 
-const About = () => {
+const TermsCondition = () => {
   const navigation = useNavigation()
 
   return (
@@ -31,7 +31,7 @@ const About = () => {
           >
             <Image source={ImageName.Back} style={styles.backicon} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>About Us</Text>
+          <Text style={styles.headerTitle}>Terms & Conditions</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -65,7 +65,7 @@ const About = () => {
   )
 }
 
-export default About
+export default TermsCondition
 
 const styles = StyleSheet.create({
   container: {

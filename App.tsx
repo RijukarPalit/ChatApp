@@ -13,6 +13,7 @@ import Toast from 'react-native-toast-message'
 import messaging from '@react-native-firebase/messaging'
 import notificationService from './src/utils/notificationService'
 import { ChatBackgroundProvider } from './src/context/ChangeBackgrounContext'
+import TermsCondition from './src/view/screens/Auth/Drawer Navigation/TermsCondition'
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -22,6 +23,7 @@ export type RootStackParamList = {
   ChatBox: any;
   ForgotPassword: undefined;
   ChatDrawer: undefined;
+  TermsCondifions : undefined
 }
 
 const Stack = createStackNavigator<RootStackParamList>()
@@ -127,6 +129,11 @@ const App = () => {
             component={ForgotPassword}
             options={{ headerShown: false }}
           />
+          {/* <Stack.Screen
+            name="TermsCondifions"
+            component={TermsCondition}
+            options={{ headerShown: false }}
+          /> */}
         </Stack.Navigator>
       </NavigationContainer>
       </ChatBackgroundProvider>

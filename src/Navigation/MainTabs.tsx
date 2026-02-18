@@ -5,6 +5,7 @@ import ChatList from '../view/screens/Auth/Drawer Navigation/ChatList'
 import ProfileScreen from '../view/screens/Auth/Drawer Navigation/ProfileScreen'
 import Status from '../view/screens/Auth/MainTabs/Status'
 import { ImageName } from '../asserts'
+import Settings from '../view/screens/Auth/Drawer Navigation/Settings'
 // import Status from '../view/screens/Auth/MainTabs/Status'
 
 const Tab = createBottomTabNavigator()
@@ -30,7 +31,7 @@ const MainTabs = () => {
                                 // source={require('../../../../asserts/images/back.png')}
                                 source={ImageName.ChatIcon}
                                 style={[styles.chatIcon]}
-                                // style={[styles.iconText, { color }]}
+                            // style={[styles.iconText, { color }]}
                             />
                         </View>
                     ),
@@ -45,23 +46,41 @@ const MainTabs = () => {
                             <Image
                                 source={ImageName.StatusIcon}
                                 style={[styles.chatIcon]}
-                                // style={[styles.iconText, { color }]}
+                            // style={[styles.iconText, { color }]}
                             />
                         </View>
                     ),
                 }}
             />
+
             <Tab.Screen
                 name="Profile"
                 component={ProfileScreen}
                 options={{
                     tabBarIcon: ({ color, focused }) => (
                         <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-                           <Image
+                            <Image
                                 // source={require('../../../../asserts/images/back.png')}
                                 source={ImageName.Profile}
                                 style={[styles.ProfileIcon]}
-                                // style={[styles.iconText, { color }]}
+                            // style={[styles.iconText, { color }]}
+                            />
+                        </View>
+                    ),
+                }}
+            />
+
+             <Tab.Screen
+                name="Settings"
+                component={Settings}
+                options={{
+                    tabBarIcon: ({ color, focused }) => (
+                        <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
+                            <Image
+                                // source={require('../../../../asserts/images/back.png')}
+                                source={ImageName.SettingsImg}
+                                style={[styles.chatIcon]}
+                            // style={[styles.iconText, { color }]}
                             />
                         </View>
                     ),
@@ -101,11 +120,11 @@ const styles = StyleSheet.create({
     iconText: {
         fontSize: 24,
     },
-    chatIcon :{
+    chatIcon: {
         width: 24,
         height: 24
     },
-    ProfileIcon :{
+    ProfileIcon: {
         width: 35,
         height: 35
     }

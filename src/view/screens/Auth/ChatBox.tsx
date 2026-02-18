@@ -193,7 +193,7 @@ const ChatBox = () => {
                 return;
             }
 
-            // ✅ INSTANT UI UPDATE
+            // INSTANT UI UPDATE
             setMessageList(prev =>
                 prev.map(msg =>
                     msg.id === messageId
@@ -1007,14 +1007,14 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 16,
         paddingVertical: 12,
-        marginTop: 40,                    
+        marginTop: 40,
     },
     title: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: '#000',                   
+        color: '#000',
         textAlign: 'center',
-        flex: 1,                         
+        flex: 1,
     },
     backicon: {
         width: 36,
@@ -1167,7 +1167,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         justifyContent: 'flex-start',
         alignItems: 'flex-end',
-        zIndex: 999,             
+        zIndex: 999,
     },
     overlayBackground: {
         position: 'absolute',
@@ -1175,7 +1175,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        zIndex: 1,               
+        zIndex: 1,
     },
     menuContainer: {
         backgroundColor: '#fff',
@@ -1185,7 +1185,7 @@ const styles = StyleSheet.create({
         marginTop: 60,
         marginRight: 10,
         elevation: 5,
-        zIndex: 2,                
+        zIndex: 2,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.15,

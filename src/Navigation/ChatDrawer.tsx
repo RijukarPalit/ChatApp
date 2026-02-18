@@ -6,6 +6,7 @@ import MainTabs from './MainTabs'
 import About from '../view/screens/Auth/Drawer Navigation/About'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import ChangeBackground from '../view/screens/Auth/ChangeBackground'
+import TermsCondition from '../view/screens/Auth/Drawer Navigation/TermsCondition'
 
 const Drawer = createDrawerNavigator()
 
@@ -84,6 +85,17 @@ const ChatDrawer = () => {
           drawerLabel: 'Change Background',
           drawerIcon: ({ color, size }) => (
             <Icon name="palette" size={size} color={color} />
+          ),
+        }}
+      />
+
+       <Drawer.Screen
+        name="TermsCondition"
+        component={TermsCondition}
+        options={{
+          drawerLabel: 'Terms & Conditions',
+          drawerIcon: ({ color, size }) => (
+            <Icon name="info" size={size} color={color} />
           ),
         }}
       />

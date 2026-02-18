@@ -15,6 +15,7 @@ export const ChatBg = require ('../../asserts/images/ChatBg.png') as ImageRequir
 export const Options = require ('../../asserts/images/option.png') as ImageRequireSource;
 export const ChatIcon = require ('../../asserts/images/chatIcon.png') as ImageRequireSource;
 export const StatusIcon = require ('../../asserts/images/status.png') as ImageRequireSource;
+export const SettingsImg = require ('../../asserts/images/SettingsImg.png') as ImageRequireSource;
 export const Info = require ('../../asserts/images/info.png') as ImageRequireSource;
 export const NewSplash = require ('../../asserts/images/NewChatSplash.png') as ImageRequireSource;
 export const NewChatSplash = require ('../../asserts/images/SplashScreenNew.png') as ImageRequireSource;
