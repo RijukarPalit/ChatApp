@@ -1,3 +1,4 @@
+
 import {
   StyleSheet,
   Text,
@@ -8,7 +9,10 @@ import {
   ActivityIndicator,
   RefreshControl,
   ImageBackground,
-  TextInput
+  TextInput,
+  StatusBar,
+  Platform,
+  Keyboard
 } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import supabase from '../../../../utils/supabase'
@@ -17,7 +21,6 @@ import { DrawerNavigationProp } from '@react-navigation/drawer'
 import { useNavigation } from '@react-navigation/native'
 import { ImageName } from '../../../../asserts'
 import LottieView from 'lottie-react-native';
-
 
 type DrawerNav = DrawerNavigationProp<any>
 
@@ -225,6 +228,7 @@ const ChatList: React.FC = () => {
 
   const clearSearch = () => {
     setSearchQuery('')
+    Keyboard.dismiss()
   }
 
   const getInitials = (firstName?: string | null, lastName?: string | null, email?: string) => {
@@ -247,12 +251,10 @@ const ChatList: React.FC = () => {
     const date = new Date(timestamp)
     const now = new Date()
     const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMs / 3600000)
     const diffDays = Math.floor(diffMs / 86400000)
 
     // Today
-    if (diffHours < 24 && date.getDate() === now.getDate()) {
+    if (diffDays === 0 && date.getDate() === now.getDate()) {
       return date.toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',
@@ -263,9 +265,7 @@ const ChatList: React.FC = () => {
     // Yesterday
     const yesterday = new Date(now)
     yesterday.setDate(yesterday.getDate() - 1)
-    if (date.getDate() === yesterday.getDate() &&
-      date.getMonth() === yesterday.getMonth() &&
-      date.getFullYear() === yesterday.getFullYear()) {
+    if (date.getDate() === yesterday.getDate()) {
       return 'Yesterday'
     }
 
@@ -276,9 +276,8 @@ const ChatList: React.FC = () => {
 
     // Older (show date)
     return date.toLocaleDateString('en-US', {
-      month: 'numeric',
-      day: 'numeric',
-      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+      month: 'short',
+      day: 'numeric'
     })
   }
 
@@ -286,6 +285,17 @@ const ChatList: React.FC = () => {
     navigation.navigate('ChatBox', {
       userId: user.id,
       userName: getDisplayName(user.firstName, user.lastName, user.email)
+    });
+  }
+
+  const handleFabPress = () => {
+    // Navigate to a "New Chat" screen or open a contact list
+    console.log('FAB Pressed - Open new chat');
+    // Example: navigation.navigate('AllContacts');
+    Toast.show({
+      type: 'info',
+      text1: 'New Chat',
+      text2: 'Select a contact to start chatting',
     });
   }
 
@@ -301,7 +311,6 @@ const ChatList: React.FC = () => {
     const hasFile = !!lastMessage?.file_url
     const hasText = !!lastMessage?.message_text?.trim()
     const isSentByMe = lastMessage?.sender_id === currentUserId
-
 
     // Determine what to display
     let displayText = ''
@@ -335,24 +344,22 @@ const ChatList: React.FC = () => {
               style={styles.avatarImage}
             />
           ) : (
-            <View style={styles.avatar}>
+            <View style={[styles.avatar, styles.defaultAvatar]}>
               <Text style={styles.avatarText}>
                 {getInitials(item.firstName, item.lastName, item.email)}
               </Text>
             </View>
           )}
-          {/* Online indicator - optional */}
-          {/* <View style={styles.onlineIndicator} /> */}
         </View>
+
 
         {/* Content */}
         <View style={styles.contentWrapper}>
-          {/* Top Row: Name and Time */}
-          <View style={styles.topRow}>
+          <View style={styles.rowTop}>
             <Text
               style={[
                 styles.userName,
-                unreadCount > 0 && styles.userNameUnread
+                unreadCount > 0 ? styles.userNameBold : null
               ]}
               numberOfLines={1}
             >
@@ -361,60 +368,45 @@ const ChatList: React.FC = () => {
             {lastMessage && (
               <Text style={[
                 styles.timeText,
-                unreadCount > 0 && styles.timeTextUnread
+                unreadCount > 0 && styles.timeTextHighlight
               ]}>
                 {formatTime(lastMessage.created_at)}
               </Text>
             )}
           </View>
 
-          {/* Bottom Row: Last Message and Unread Badge */}
-          <View style={styles.bottomRow}>
-            {lastMessage ? (
-              <View style={styles.lastMessageContainer}>
-                {/* Show "You: " prefix if sent by current user */}
-                {isSentByMe && (
-                  <Text style={[
-                    styles.youPrefix,
-                    unreadCount > 0 && styles.lastMessageUnread
-                  ]}>
-                    You:
+          <View style={styles.rowBottom}>
+            <View style={styles.messagePreviewContainer}>
+              {lastMessage ? (
+                <>
+                  {isSentByMe && <Text style={styles.prefixText}>You: </Text>}
+                  {showImageIcon && <Text style={styles.iconText}>📷 </Text>}
+                  {showFilesIcon && <Text style={styles.iconText}>📎 </Text>}
+                  <Text
+                    style={[
+                      styles.lastMessage,
+                      unreadCount > 0 ? styles.lastMessageBold : null
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {displayText}
                   </Text>
-                )}
-
-                {/* Show camera icon for image messages */}
-                {showImageIcon && (
-                  <Text style={styles.imageIcon}>📷 </Text>
-                )}
-
-                {/* Show file icon for file messages */}
-                {showFilesIcon && (
-                  <Text style={styles.imageIcon}>📁 </Text>
-                )}
-
-                {/* Show message text */}
-                <Text
-                  style={[
-                    styles.lastMessage,
-                    unreadCount > 0 && styles.lastMessageUnread
-                  ]}
-                  numberOfLines={1}
-                >
-                  {displayText}
-                </Text>
-              </View>
-            ) : (
-              <Text style={styles.noMessages}>Tap to start chatting</Text>
-            )}
+                </>
+              ) : (
+                <Text style={styles.emptyMessageText}>Tap to start chatting</Text>
+              )}
+            </View>
 
             {unreadCount > 0 && (
-              <View style={styles.unreadBadge}>
-                <Text style={styles.unreadText}>
+              <View style={styles.badgeContainer}>
+                <Text style={styles.badgeText}>
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </Text>
               </View>
             )}
           </View>
+
+          
         </View>
       </TouchableOpacity>
     )
@@ -423,354 +415,429 @@ const ChatList: React.FC = () => {
   if (loading) {
     return (
       <ImageBackground
-        //source={ImageName.Background}
         source={ImageName.ChatBg}
         style={styles.backgroundImage}
         resizeMode="cover"
       >
-        <View style={styles.loaderContainer}>
+        <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#4950B8" />
-          <Text style={styles.loadingText}>Loading chats...</Text>
+          <Text style={styles.loadingText}>Loading conversations...</Text>
         </View>
       </ImageBackground>
     )
   }
 
   return (
-    <ImageBackground
-      // source={ImageName.Background}
-      source={ImageName.ChatBg}
-      style={styles.backgroundImage}
-      resizeMode="cover"
-    >
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Messages</Text>
-          <TouchableOpacity
-            onPress={() => navigation.openDrawer()}
-            style={styles.menuButton}
-          >
-            <Image
-              source={ImageName.Menu}
-              style={styles.menuIcon}
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <View style={styles.searchBar}>
-            {/* <Text style={styles.searchIcon}>🔍</Text> */}
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search messages..."
-              placeholderTextColor="#999"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
-                <Text style={styles.clearButtonText}>✕</Text>
-              </TouchableOpacity>
-            )}
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor="#4950B8" />
+      
+      {/* Background with Header */}
+      <ImageBackground
+        source={ImageName.ChatBg}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      >
+        <View style={styles.headerContainer}>
+          <View style={styles.topBar}>
+            <Text style={styles.headerTitle}>Messages</Text>
+            <TouchableOpacity
+              onPress={() => navigation.openDrawer()}
+              style={styles.menuButton}
+            >
+              <Image source={ImageName.Menu} style={styles.menuIcon} />
+            </TouchableOpacity>
           </View>
-        </View>
 
-        {/* Chat List */}
-        <FlatList
-          data={filteredUsers}
-          renderItem={renderUserItem}
-          keyExtractor={(item) => item.id}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={['#4950B8']}
-              tintColor="#4950B8"
-            />
-          }
-          contentContainerStyle={styles.listContainer}
-          showsVerticalScrollIndicator={false}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          // ListEmptyComponent={
-          //   <View style={styles.emptyContainer}>
-          //     <Text style={styles.emptyIcon}>💬</Text>
-          //     <Text style={styles.emptyText}>
-          //       {searchQuery ? 'No results found' : 'No chats yet'}
-          //     </Text>
-          //     <Text style={styles.emptySubtext}>
-          //       {searchQuery ? 'Try a different search term' : 'Start a conversation with someone'}
-          //     </Text>
-          //   </View>
-          // }
-
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              {searchQuery ? (
-                <>
-                  {/* REPLACE WITH YOUR LOTTIE FILE PATH */}
-                  <LottieView
-                    // source={require('../../../../assets/no-user-found.json')}
-                    source={require('../../../../asserts/images/no-user-found.json')}
-                    autoPlay
-                    loop
-                    style={{ width: 200, height: 200 }}
-                  />
-                  <Text style={styles.emptyText}>No users found</Text>
-                  <Text style={styles.emptySubtext}>
-                    We couldn't find anyone matching "{searchQuery}"
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <Text style={styles.emptyIcon}>💬</Text>
-                  <Text style={styles.emptyText}>No chats yet</Text>
-                  <Text style={styles.emptySubtext}>Start a conversation with someone</Text>
-                </>
+          {/* Search Bar Embedded in Header */}
+          <View style={styles.searchSection}>
+            <View style={styles.searchFieldContainer}>
+              {/* <Text style={styles.searchIcon}>🔍</Text> */}
+              <TextInput
+                style={styles.input}
+                placeholder="Search messages..."
+                placeholderTextColor="#8E8E93"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                returnKeyType="search"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={clearSearch} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                  <View style={styles.clearCircle}>
+                    <Text style={styles.clearX}>✕</Text>
+                  </View>
+                </TouchableOpacity>
+                
               )}
             </View>
-          }
-        />
-      </View>
-    </ImageBackground>
+          </View>
+          
+        </View>
+
+        {/* Content List - Styled as a Sheet */}
+        <View style={styles.listSheet}>
+          <FlatList
+            data={filteredUsers}
+            renderItem={renderUserItem}
+            keyExtractor={(item) => item.id}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={['#4950B8']}
+                tintColor="#4950B8"
+              />
+            }
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            ListEmptyComponent={
+              <View style={styles.emptyStateContainer}>
+                {searchQuery ? (
+                  <>
+                    <LottieView
+                      source={require('../../../../asserts/images/no-user-found.json')}
+                      autoPlay
+                      loop
+                      style={styles.lottie}
+                    />
+                    <Text style={styles.emptyTitle}>No results found</Text>
+                    <Text style={styles.emptyDescription}>
+                      We couldn't find any matches for "{searchQuery}"
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.emptyIconCircle}>
+                       <Text style={styles.emptyIconEmoji}>💬</Text>
+                    </View>
+                    <Text style={styles.emptyTitle}>No chats yet</Text>
+                    <Text style={styles.emptyDescription}>Start a new conversation to see it here</Text>
+                  </>
+                )}
+              </View>
+            }
+          />
+        </View>
+        
+        {/* Floating Action Button (FAB) */}
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={handleFabPress}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.fabIcon}>+</Text>
+        </TouchableOpacity>
+
+      </ImageBackground>
+    </View>
   )
 }
 
 export default ChatList
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
+    backgroundColor: '#F2F2F7', // iOS system gray
   },
   backgroundImage: {
     flex: 1,
     width: '100%',
-    height: '100%',
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#666',
-    fontWeight: '500',
-  },
-  header: {
+  },  
+  // Header Styles
+  headerContainer: {
     backgroundColor: '#4950B8',
-    paddingVertical: 16,
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingBottom: 24,
     paddingHorizontal: 20,
-    paddingTop: 50,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  headerTitle: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  menuButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
+  },
+  menuIcon: {
+    width: 22,
+    height: 22,
+    tintColor: '#FFFFFF',
+  },
+  
+  // Search Styles
+  searchSection: {
+    marginTop: 4,
+  },
+  searchFieldContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    elevation: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    height: 48,
+    paddingHorizontal: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  menuButton: {
-    padding: 8,
-  },
-  menuIcon: {
-    width: 26,
-    height: 26,
-    tintColor: '#fff',
-  },
-  searchContainer: {
-    backgroundColor: '#4950B8',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    height: 44,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    elevation: 3,
   },
   searchIcon: {
     fontSize: 18,
-    marginRight: 8,
+    marginRight: 10,
+    opacity: 0.5,
   },
-  searchInput: {
+  input: {
     flex: 1,
     fontSize: 16,
-    color: '#000',
-    paddingVertical: 8,
+    color: '#1C1C1E',
+    height: '100%',
   },
-  clearButton: {
-    padding: 4,
-  },
-  clearButtonText: {
-    fontSize: 20,
-    color: '#999',
-    fontWeight: '300',
-  },
-  listContainer: {
-    paddingBottom: 8,
-  },
-  userCard: {
-    flexDirection: 'row',
-    // backgroundColor: '#fff',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-  },
-  separator: {
-    height: 0.5,
-    backgroundColor: '#E5E5E5',
-    marginLeft: 76,
-  },
-  avatarContainer: {
-    marginRight: 14,
-    position: 'relative',
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#4950B8',
+  clearCircle: {
+    backgroundColor: '#E5E5EA',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  clearX: {
+    fontSize: 12,
+    color: '#8E8E93',
+    fontWeight: 'bold',
+  },
+
+  // List Container Styles (Sheet Look)
+  listSheet: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: -16, // Pull up over the header slightly
+    overflow: 'hidden',
+  },
+  listContent: {
+    paddingTop: 12,
+    paddingBottom: 40,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#F2F2F7',
+    marginLeft: 84, // Align with text start
+    marginRight: 0,
+  },
+
+  // User Card Styles
+  userCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    backgroundColor: '#FFFFFF',
+    //backgroundColor: '#E5E5EA',
+    borderRadius: 30,
+    // marginHorizontal: 10,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginRight: 16,
   },
   avatarImage: {
     width: 56,
     height: 56,
     borderRadius: 28,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  defaultAvatar: {
+    backgroundColor: '#E0E7FF', // Lighter purple shade
   },
   avatarText: {
-    color: '#fff',
+    color: '#4950B8',
     fontSize: 22,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  onlineIndicator: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#4CAF50',
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
+  
+  // Content Styles
   contentWrapper: {
     flex: 1,
     justifyContent: 'center',
   },
-  topRow: {
+  rowTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 5,
+    marginBottom: 4,
   },
   userName: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#000',
+    color: '#1C1C1E',
     flex: 1,
-    marginRight: 8,
+    marginRight: 10,
   },
-  userNameUnread: {
-    fontWeight: '700',
+  userNameBold: {
+    fontWeight: '800',
+    color: '#000',
   },
   timeText: {
-    fontSize: 13,
-    color: '#999',
-    fontWeight: '400',
+    fontSize: 12,
+    color: '#8E8E93',
+    fontWeight: '500',
   },
-  timeTextUnread: {
+  timeTextHighlight: {
+    color: '#4950B8',
+    fontWeight: '700',
+  },
+  rowBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  messagePreviewContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  prefixText: {
+    fontSize: 14,
+    color: '#4950B8',
+    fontWeight: '500',
+  },
+  iconText: {
+    fontSize: 12,
+    color: '#8E8E93',
+  },
+  lastMessage: {
+    fontSize: 14,
+    color: '#8E8E93',
+    flex: 1,
+    lineHeight: 20,
+  },
+  lastMessageBold: {
+    color: '#1C1C1E',
+    fontWeight: '600',
+  },
+  emptyMessageText: {
+    fontSize: 14,
+    color: '#AEAEB2',
+    fontStyle: 'italic',
+  },
+  
+  // Badge Styles
+  badgeContainer: {
+    backgroundColor: '#4950B8',
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+
+  // Loading & Empty States
+  loadingOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.8)',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
     color: '#4950B8',
     fontWeight: '600',
   },
-  bottomRow: {
-    flexDirection: 'row',
+  emptyStateContainer: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  lastMessageContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: 8,
-  },
-  youPrefix: {
-    fontSize: 15,
-    color: '#666',
-    fontWeight: '400',
-  },
-  imageIcon: {
-    fontSize: 15,
-    color: '#666',
-  },
-  lastMessage: {
-    fontSize: 15,
-    color: '#666',
-    flex: 1,
-    fontWeight: '400',
-  },
-  lastMessageUnread: {
-    color: '#000',
-    fontWeight: '600',
-  },
-  noMessages: {
-    fontSize: 15,
-    color: '#999',
-    fontStyle: 'italic',
-  },
-  unreadBadge: {
-    backgroundColor: '#4950B8',
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
-    paddingHorizontal: 7,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  unreadText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 80,
+    paddingTop: 60,
     paddingHorizontal: 40,
   },
-  emptyIcon: {
-    fontSize: 64,
+  lottie: {
+    width: 200,
+    height: 200,
+  },
+  emptyIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F2F2F7',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 16,
   },
-  emptyText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
+  emptyIconEmoji: {
+    fontSize: 32,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1C1C1E',
     marginBottom: 8,
     textAlign: 'center',
   },
-  emptySubtext: {
+  emptyDescription: {
     fontSize: 15,
-    color: '#666',
+    color: '#8E8E93',
     textAlign: 'center',
+    lineHeight: 22,
+  },
+
+  // Floating Action Button (FAB)
+  fab: {
+    position: 'absolute',
+    bottom: 30,
+    right: 25,
+    width: 65,
+    height: 65,
+    borderRadius: 35,
+    backgroundColor: '#4950B8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    // Shadow for depth
+    shadowColor: '#4950B8',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 8,
+    borderWidth: 6,
+    borderColor: 'rgba(73, 80, 184, 0.2)', // Semi-transparent blue ring
+  },
+  fabIcon: {
+    fontSize: 32,
+    color: '#FFFFFF',
+    fontWeight: '300',
+    marginTop: -2, // Optical adjustment
+    marginLeft: 1,
   },
 })
