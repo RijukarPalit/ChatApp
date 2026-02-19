@@ -21,6 +21,7 @@ import { DrawerNavigationProp } from '@react-navigation/drawer'
 import { useNavigation } from '@react-navigation/native'
 import { ImageName } from '../../../../asserts'
 import LottieView from 'lottie-react-native';
+import { hp } from '../../../../utils/dimention'
 
 type DrawerNav = DrawerNavigationProp<any>
 
@@ -63,6 +64,9 @@ const ChatList: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showMenu, setShowMenu] = useState(false);
+  const [showAllUsers, setShowAllUsers] = useState(false)
+
 
   useEffect(() => {
     initializeChatList()
@@ -73,11 +77,32 @@ const ChatList: React.FC = () => {
     filterUsers()
   }, [searchQuery, users])
 
+  useEffect(() => {
+    if (!users.length) return
+
+    const baseUsers = showAllUsers
+      ? users
+      : users.filter(user => user.lastMessage)
+
+    setFilteredUsers(baseUsers)
+  }, [showAllUsers, users])
+
+
   const filterUsers = () => {
+    // if (!searchQuery.trim()) {
+    //   setFilteredUsers(users)
+    //   return
+    // }
+
     if (!searchQuery.trim()) {
-      setFilteredUsers(users)
+      const baseUsers = showAllUsers
+        ? users
+        : users.filter(user => user.lastMessage)
+
+      setFilteredUsers(baseUsers)
       return
     }
+
 
     const query = searchQuery.toLowerCase()
     const filtered = users.filter(user => {
@@ -180,8 +205,11 @@ const ChatList: React.FC = () => {
         return new Date(b.lastMessage.created_at).getTime() - new Date(a.lastMessage.created_at).getTime()
       })
 
+      // setUsers(sortedUsers)
+      // setFilteredUsers(sortedUsers)
+
+      // Show only users who have chatted (have lastMessage)
       setUsers(sortedUsers)
-      setFilteredUsers(sortedUsers)
     } catch (err: any) {
       Toast.show({
         type: 'error',
@@ -406,7 +434,7 @@ const ChatList: React.FC = () => {
             )}
           </View>
 
-          
+
         </View>
       </TouchableOpacity>
     )
@@ -430,7 +458,7 @@ const ChatList: React.FC = () => {
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#4950B8" />
-      
+
       {/* Background with Header */}
       <ImageBackground
         source={ImageName.ChatBg}
@@ -461,16 +489,16 @@ const ChatList: React.FC = () => {
                 returnKeyType="search"
               />
               {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={clearSearch} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                <TouchableOpacity onPress={clearSearch} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                   <View style={styles.clearCircle}>
                     <Text style={styles.clearX}>✕</Text>
                   </View>
                 </TouchableOpacity>
-                
+
               )}
             </View>
           </View>
-          
+
         </View>
 
         {/* Content List - Styled as a Sheet */}
@@ -507,26 +535,55 @@ const ChatList: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <View style={styles.emptyIconCircle}>
-                       <Text style={styles.emptyIconEmoji}>💬</Text>
+                    {/* <View style={styles.emptyIconCircle}>
+                      <Text style={styles.emptyIconEmoji}>💬</Text>
                     </View>
                     <Text style={styles.emptyTitle}>No chats yet</Text>
-                    <Text style={styles.emptyDescription}>Start a new conversation to see it here</Text>
+                    <Text style={styles.emptyDescription}>Start a new conversation to see it here</Text> */}
+                    {/* <LottieView
+                      source={require('../../../../asserts/images/NoChats.json')}
+                      autoPlay
+                      loop
+                      style={styles.lottie2}
+                    />
+                    <Text style={styles.emptyTitle}>No chats yet</Text>
+                    <Text style={styles.emptyDescription}>
+                      Start a new conversation to see it here
+                    </Text> */}
+
+                    <View style={styles.emptyContainer}>
+                      <LottieView
+                        source={require('../../../../asserts/images/NoChats.json')}
+                        autoPlay
+                        loop
+                        style={styles.lottie2}
+                      />
+                      <Text style={styles.emptyTitle}>No chats yet</Text>
+                      <Text style={styles.emptyDescription}>
+                        Start a new conversation to see it here
+                      </Text>
+                    </View>
+
                   </>
                 )}
               </View>
             }
           />
         </View>
-        
+
         {/* Floating Action Button (FAB) */}
         <TouchableOpacity
           style={styles.fab}
-          onPress={handleFabPress}
+          onPress={() => {
+            setShowAllUsers(prev => !prev)
+          }}
           activeOpacity={0.8}
         >
-          <Text style={styles.fabIcon}>+</Text>
+          <Text style={styles.fabIcon}>
+            {showAllUsers ? '×' : '+'}
+          </Text>
         </TouchableOpacity>
+
 
       </ImageBackground>
     </View>
@@ -543,7 +600,7 @@ const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
     width: '100%',
-  },  
+  },
   // Header Styles
   headerContainer: {
     backgroundColor: '#4950B8',
@@ -575,7 +632,7 @@ const styles = StyleSheet.create({
     height: 22,
     tintColor: '#FFFFFF',
   },
-  
+
   // Search Styles
   searchSection: {
     marginTop: 4,
@@ -680,7 +737,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
   },
-  
+
   // Content Styles
   contentWrapper: {
     flex: 1,
@@ -747,7 +804,7 @@ const styles = StyleSheet.create({
     color: '#AEAEB2',
     fontStyle: 'italic',
   },
-  
+
   // Badge Styles
   badgeContainer: {
     backgroundColor: '#4950B8',
@@ -787,6 +844,12 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
   },
+  lottie2: {
+    width: 200,
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   emptyIconCircle: {
     width: 80,
     height: 80,
@@ -812,6 +875,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
+
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 30,
+    marginTop: hp(20),
+  },
+
 
   // Floating Action Button (FAB)
   fab: {

@@ -1023,7 +1023,7 @@ const styles = StyleSheet.create({
     options: {
         width: 36,
         height: 36,
-        // ← tintColor: 'transparent' REMOVED — this was hiding the icon!
+        
     },
     profileSection: {
         // leave empty or remove entirely
@@ -1199,5 +1199,4 @@ const styles = StyleSheet.create({
 
 
 });
-
 
