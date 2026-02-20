@@ -14,6 +14,7 @@ import {
     Linking,
     ImageBackground,
     Pressable,
+    AppState,
 } from 'react-native';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -45,7 +46,7 @@ interface Message {
     sender_id: string;
     receiver_id: string;
     message_text: string;
-    image_url?: string;  // Added this
+    image_url?: string;
     created_at: string;
     read: boolean;
     file_url?: string;
@@ -79,17 +80,21 @@ const ChatBox = () => {
 
     const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
     const [reactionPickerVisible, setReactionPickerVisible] = useState(false);
+    const [receiverOnline, setReceiverOnline] = useState<boolean>(false);
+    const [receiverLastSeen, setReceiverLastSeen] = useState<string | null>(null);
 
     const { background } = useChatBackground();
 
-
-
     const [showMenu, setShowMenu] = useState(false);
-
-    // const [messages, setMessages] = useState([]);
+    const [uploadingImage, setUploadingImage] = useState(false);
 
     const flatListRef = useRef<FlatList>(null);
     const channelRef = useRef<RealtimeChannel | null>(null);
+
+    // ✅ FIX: Store userId in a ref so it's always accessible synchronously
+    // (useState is async, so updateMyStatus called right after setCurrentUserId
+    //  would still see null — the ref fixes this)
+    const currentUserIdRef = useRef<string | null>(null);
 
     const behaviour = useKeyboardBehavior();
 
@@ -97,25 +102,18 @@ const ChatBox = () => {
         'https://uphnjyseymtnimskcepk.functions.supabase.co/send-notification';
 
 
-    useEffect(() => {
-        initializeChat();
+    // ✅ FIX: Accept userId as a parameter instead of reading from state
+    const updateMyStatus = async (isOnline: boolean, userId?: string) => {
+        const uid = userId || currentUserIdRef.current;
+        if (!uid) return;
 
-        // Cleanup on unmount
-        return () => {
-            if (channelRef.current) {
-                supabase.removeChannel(channelRef.current);
-            }
-        };
-    }, []);
-
-    const [uploadingImage, setUploadingImage] = useState(false)
-
-    const initializeChat = async () => {
-        const user = await getCurrentUser();
-        if (user) {
-            await fetchMessages(user.id);
-            subscribeToMessages(user.id);
-        }
+        await supabase
+            .from('user')
+            .update({
+                is_online: isOnline,
+                last_seen: new Date().toISOString(),
+            })
+            .eq('id', uid);
     };
 
     const getCurrentUser = async () => {
@@ -129,9 +127,10 @@ const ChatBox = () => {
             }
 
             if (user) {
+                // ✅ FIX: Set both state AND ref at the same time
                 setCurrentUserId(user.id);
+                currentUserIdRef.current = user.id;
 
-                // Fetch user name from profiles table
                 const { data: profileData, error: profileError } = await supabase
                     .from('user')
                     .select('name')
@@ -156,25 +155,37 @@ const ChatBox = () => {
         }
     };
 
+    const initializeChat = async () => {
+        const user = await getCurrentUser();
+        if (user) {
+            // ✅ FIX: Pass user.id directly — no dependency on state
+            await updateMyStatus(true, user.id);
+            await fetchMessages(user.id);
+            subscribeToMessages(user.id);
+        }
+    };
 
-    // const addReaction = async (emoji: string) => {
-    //     if (!currentUserId || !selectedMessageId) return;
+    const subscribeToUserStatus = () => {
+        const channel = supabase
+            .channel(`status-${receiverId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'user',
+                    filter: `id=eq.${receiverId}`,
+                },
+                (payload) => {
+                    console.log("STATUS UPDATE:", payload.new);
+                    setReceiverOnline(payload.new.is_online);
+                    setReceiverLastSeen(payload.new.last_seen);
+                }
+            )
+            .subscribe();
 
-    //     try {
-    //         await supabase
-    //             .from('message_reactions')
-    //             .insert([{
-    //                 message_id: selectedMessageId,
-    //                 user_id: currentUserId,
-    //                 emoji: emoji,
-    //             }]);
-
-    //         setReactionPickerVisible(false);
-    //         setSelectedMessageId(null);
-    //     } catch (error) {
-    //         console.log('Reaction error:', error);
-    //     }
-    // };
+        return channel;
+    };
 
     const addReaction = async (messageId: string, emoji: string) => {
         try {
@@ -193,26 +204,55 @@ const ChatBox = () => {
                 return;
             }
 
-            // INSTANT UI UPDATE
             setMessageList(prev =>
                 prev.map(msg =>
                     msg.id === messageId
-                        ? {
-                            ...msg,
-                            reactions: [...(msg.reactions || []), data],
-                        }
+                        ? { ...msg, reactions: [...(msg.reactions || []), data] }
                         : msg
                 )
             );
-
-
         } catch (err) {
             console.error("Unexpected error:", err);
         }
     };
 
+    useEffect(() => {
+        let statusChannel: RealtimeChannel | null = null;
 
-    // Fetch all messages between current user and receiver
+        const setup = async () => {
+            await initializeChat();
+            await fetchReceiverStatus();
+            statusChannel = subscribeToUserStatus();
+        };
+
+        setup();
+
+        return () => {
+            if (channelRef.current) {
+                supabase.removeChannel(channelRef.current);
+            }
+            if (statusChannel) {
+                supabase.removeChannel(statusChannel);
+            }
+            // ✅ FIX: updateMyStatus uses the ref, so it works reliably on unmount
+            updateMyStatus(false);
+        };
+    }, []);
+
+    // ✅ FIX: AppState listener now uses ref instead of state — works immediately
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', (state) => {
+            if (state === 'active') {
+                updateMyStatus(true);
+            } else {
+                updateMyStatus(false);
+            }
+        });
+
+        return () => subscription.remove();
+        // ✅ Removed currentUserId from dependency — ref handles it without re-subscribing
+    }, []);
+
     const fetchMessages = async (userId: string) => {
         try {
             setLoading(true);
@@ -233,14 +273,11 @@ const ChatBox = () => {
                 reactions: msg.message_reactions || [],
             }));
 
-            console.log("Formatted:", formattedMessages);
-
             setMessageList(formattedMessages || []);
 
             if (data && data.length > 0) {
                 markMessagesAsRead(userId);
             }
-
         } catch (err) {
             console.error('Unexpected error:', err);
         } finally {
@@ -248,8 +285,19 @@ const ChatBox = () => {
         }
     };
 
+    const fetchReceiverStatus = async () => {
+        const { data, error } = await supabase
+            .from('user')
+            .select('is_online, last_seen')
+            .eq('id', receiverId)
+            .single();
 
-    // Mark all received messages as read
+        if (!error && data) {
+            setReceiverOnline(data.is_online);
+            setReceiverLastSeen(data.last_seen);
+        }
+    };
+
     const markMessagesAsRead = async (userId: string) => {
         try {
             const { error } = await supabase
@@ -267,9 +315,7 @@ const ChatBox = () => {
         }
     };
 
-    // Subscribe to real-time messages
     const subscribeToMessages = (userId: string) => {
-        // Remove existing channel if any
         if (channelRef.current) {
             supabase.removeChannel(channelRef.current);
         }
@@ -287,19 +333,16 @@ const ChatBox = () => {
                     console.log('New message received:', payload.new);
                     const newMessage = payload.new as Message;
 
-                    // Only add if it's part of this conversation
                     if (
                         (newMessage.sender_id === userId && newMessage.receiver_id === receiverId) ||
                         (newMessage.sender_id === receiverId && newMessage.receiver_id === userId)
                     ) {
                         setMessageList((prev) => {
-                            // Check if message already exists to avoid duplicates
                             const exists = prev.some(msg => msg.id === newMessage.id);
                             if (exists) return prev;
                             return [newMessage, ...prev];
                         });
 
-                        // Mark as read if it's from the other user
                         if (newMessage.sender_id === receiverId) {
                             markMessagesAsRead(userId);
                         }
@@ -313,7 +356,6 @@ const ChatBox = () => {
         channelRef.current = channel;
     };
 
-    // Send message to Supabase
     const handleSend = async () => {
         if (!inputText.trim()) return;
 
@@ -339,59 +381,37 @@ const ChatBox = () => {
 
             if (error) {
                 console.error('Error sending message:', error);
-                Toast.show({
-                    type: 'error',
-                    text1: 'Error',
-                    text2: 'Failed to send message',
-                    position: 'top',
-                });
+                Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to send message', position: 'top' });
                 return;
             }
 
             console.log('✅ Message sent:', data);
-
-            // Clear input immediately for better UX
             setInputText('');
+
             try {
                 await fetch(SUPABASE_FUNCTION_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         receiverId: receiverId,
                         title: 'New Message',
                         body: messageToSend,
                         data: {
-                            // type: 'chat',
-                            // senderId: currentUserId,
-
-                            userId: currentUserId,      // sender id
-                            userName: currentUserName,  // sender name (IMPORTANT)
+                            userId: currentUserId,
+                            userName: currentUserName,
                         },
                     }),
                 });
             } catch (pushError) {
                 console.log('Push notification error:', pushError);
             }
-
         } catch (err: any) {
             console.error('Unexpected error:', err);
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: err.message || 'Failed to send message',
-                position: 'top',
-            });
+            Toast.show({ type: 'error', text1: 'Error', text2: err.message || 'Failed to send message', position: 'top' });
         } finally {
             setSending(false);
         }
     };
-
-    // const clearChat = () => {
-    //     setMessageList([]);  // Clears the actual message list
-    //     setShowMenu(false);  // Closes the menu
-    // };
 
     const clearChat = () => {
         Alert.alert(
@@ -401,16 +421,12 @@ const ChatBox = () => {
                 {
                     text: 'Cancel',
                     style: 'cancel',
-                    onPress: () => {
-                        console.log('Cancel pressed');
-                        setShowMenu(false);
-                    },
+                    onPress: () => { setShowMenu(false); },
                 },
                 {
                     text: 'Delete',
                     style: 'destructive',
                     onPress: async () => {
-                        console.log('Delete pressed');
                         setShowMenu(false);
 
                         if (!currentUserId) {
@@ -419,59 +435,34 @@ const ChatBox = () => {
                         }
 
                         try {
-                            // Get all message IDs to delete
                             const { data: messagesToDelete, error: fetchError } = await supabase
                                 .from('messages')
                                 .select('id')
-                                .or(
-                                    `and(sender_id.eq.${currentUserId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${currentUserId})`
-                                );
+                                .or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${currentUserId})`);
 
                             if (fetchError) {
-                                console.error('Error fetching messages:', fetchError);
                                 Alert.alert('Error', 'Failed to fetch messages');
                                 return;
                             }
 
                             if (!messagesToDelete || messagesToDelete.length === 0) {
-                                Toast.show({
-                                    type: 'info',
-                                    text1: 'No messages to delete',
-                                    position: 'top',
-                                });
+                                Toast.show({ type: 'info', text1: 'No messages to delete', position: 'top' });
                                 return;
                             }
 
-                            console.log(` Deleting ${messagesToDelete.length} messages...`);
-
-                            // Delete all messages
                             const { error: deleteError } = await supabase
                                 .from('messages')
                                 .delete()
-                                .or(
-                                    `and(sender_id.eq.${currentUserId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${currentUserId})`
-                                );
+                                .or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${currentUserId})`);
 
                             if (deleteError) {
-                                console.error('Error deleting messages:', deleteError);
                                 Alert.alert('Error', `Failed to delete messages: ${deleteError.message}`);
                                 return;
                             }
 
-                            // Clear UI
                             setMessageList([]);
-
-                            Toast.show({
-                                type: 'success',
-                                text1: 'Chat cleared',
-                                text2: `${messagesToDelete.length} messages deleted permanently`,
-                                position: 'top',
-                            });
-
-                            console.log('✅ Chat cleared successfully from database');
-
+                            Toast.show({ type: 'success', text1: 'Chat cleared', text2: `${messagesToDelete.length} messages deleted permanently`, position: 'top' });
                         } catch (err: any) {
-                            console.error('Unexpected error clearing chat:', err);
                             Alert.alert('Error', err?.message || 'Something went wrong');
                         }
                     },
@@ -479,21 +470,30 @@ const ChatBox = () => {
             ]
         );
     };
+    
 
+    // ✅ FIX: Friendly "last seen" formatter
+    const formatLastSeen = (isoString: string | null): string => {
+        if (!isoString) return 'Offline';
+        const date = new Date(isoString);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
 
-    // Render message bubble
+        if (diffMins < 1) return 'Last seen just now';
+        if (diffMins < 60) return `Last seen ${diffMins}m ago`;
+        const diffHours = Math.floor(diffMins / 60);
+        if (diffHours < 24) return `Last seen ${diffHours}h ago`;
+        return `Last seen ${date.toLocaleDateString()}`;
+    };
+
     const renderMessage = ({ item }: { item: Message }) => {
         const isMine = item.sender_id === currentUserId;
-        const bubbleStyle = isMine
-            ? styles.messageBubbleRight
-            : styles.messageBubbleLeft;
 
-        // Format timestamp
         const messageTime = new Date(item.created_at).toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit',
         });
-
 
         return (
             <View style={{ marginVertical: 4 }}>
@@ -503,7 +503,7 @@ const ChatBox = () => {
                         setSelectedMessageId(item.id);
                         setReactionPickerVisible(true);
                     }}
-                    style={[styles.messageBubble, bubbleStyle]}
+                    style={[styles.messageBubble, isMine ? styles.messageBubbleRight : styles.messageBubbleLeft]}
                 >
                     {item.image_url && (
                         <TouchableOpacity
@@ -513,11 +513,7 @@ const ChatBox = () => {
                                 setIsImageViewerVisible(true);
                             }}
                         >
-                            <Image
-                                source={{ uri: item.image_url }}
-                                style={styles.messageImage}
-                                resizeMode="cover"
-                            />
+                            <Image source={{ uri: item.image_url }} style={styles.messageImage} resizeMode="cover" />
                         </TouchableOpacity>
                     )}
 
@@ -534,67 +530,39 @@ const ChatBox = () => {
                             }}
                             style={styles.fileContainer}
                         >
-                            <Text style={styles.fileIcon}>
-                                {item.file_type === 'pdf' ? '📕' : '📄'}
-                            </Text>
+                            <Text style={styles.fileIcon}>{item.file_type === 'pdf' ? '📕' : '📄'}</Text>
                             <View style={styles.fileInfo}>
-                                <Text style={styles.fileName} numberOfLines={1}>
-                                    {item.file_name || 'Document'}
-                                </Text>
-                                <Text style={styles.fileType}>
-                                    {item.file_type?.toUpperCase() || 'FILE'}
-                                </Text>
+                                <Text style={styles.fileName} numberOfLines={1}>{item.file_name || 'Document'}</Text>
+                                <Text style={styles.fileType}>{item.file_type?.toUpperCase() || 'FILE'}</Text>
                             </View>
                         </TouchableOpacity>
                     )}
 
                     {item.message_text && (
-                        <Text
-                            style={[
-                                styles.messageText,
-                                { color: isMine ? '#fff' : '#000' }
-                            ]}
-                        >
+                        <Text style={[styles.messageText, { color: isMine ? '#fff' : '#000' }]}>
                             {item.message_text}
                         </Text>
                     )}
 
-                    <Text
-                        style={[
-                            styles.messageTime,
-                            { color: isMine ? '#fff' : '#000' }
-                        ]}
-                    >
+                    <Text style={[styles.messageTime, { color: isMine ? '#fff' : '#000' }]}>
                         {messageTime}
                     </Text>
                 </TouchableOpacity>
 
-                {/* 👇 REACTIONS DISPLAY */}
                 {item.reactions && item.reactions.length > 0 && (
-                    <View
-                        style={{
-                            flexDirection: 'row',
-                            marginTop: 4,
-                            alignSelf: isMine ? 'flex-end' : 'flex-start',
-                            marginHorizontal: 10,
-                        }}
-                    >
+                    <View style={{
+                        flexDirection: 'row',
+                        marginTop: 4,
+                        alignSelf: isMine ? 'flex-end' : 'flex-start',
+                        marginHorizontal: 10,
+                    }}>
                         {Object.entries(
                             item.reactions.reduce((acc: any, r) => {
                                 acc[r.emoji] = (acc[r.emoji] || 0) + 1;
                                 return acc;
                             }, {})
                         ).map(([emoji, count]) => (
-                            <View
-                                key={emoji}
-                                style={{
-                                    backgroundColor: '#eee',
-                                    borderRadius: 12,
-                                    paddingHorizontal: 8,
-                                    paddingVertical: 3,
-                                    marginRight: 5,
-                                }}
-                            >
+                            <View key={emoji} style={{ backgroundColor: '#eee', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3, marginRight: 5 }}>
                                 <Text>{emoji} {count}</Text>
                             </View>
                         ))}
@@ -602,111 +570,49 @@ const ChatBox = () => {
                 )}
             </View>
         );
-
     };
 
-
-    /* ================= PICK IMAGE ================= */
     const pickImage = async () => {
         try {
-            const result = await launchImageLibrary({
-                mediaType: 'photo',
-                quality: 0.7,
-                maxWidth: 1000,
-                maxHeight: 1000,
-                includeBase64: true,
-            })
-
-            if (result.didCancel) {
-                console.log('User cancelled image picker')
-                return
-            }
-
-            if (result.errorCode) {
-                console.log('ImagePicker Error: ', result.errorMessage)
-                Alert.alert('Error', result.errorMessage || 'Failed to pick image')
-                return
-            }
-
+            const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.7, maxWidth: 1000, maxHeight: 1000, includeBase64: true })
+            if (result.didCancel) return;
+            if (result.errorCode) { Alert.alert('Error', result.errorMessage || 'Failed to pick image'); return; }
             if (result.assets && result.assets[0] && result.assets[0].base64) {
                 await uploadImage(result.assets[0].base64, result.assets[0].uri || '')
             }
         } catch (error) {
-            console.log('Image picker error:', error)
             Alert.alert('Error', 'Failed to pick image')
         }
     }
 
     const selectDoc = async () => {
         try {
-            const result = await pick({
-                type: [types.allFiles],
-                copyTo: 'cachesDirectory',
-            });
-
-            if (result?.[0]) {
-                await uploadDocument(result[0]);
-            }
+            const result = await pick({ type: [types.allFiles], copyTo: 'cachesDirectory' });
+            if (result?.[0]) await uploadDocument(result[0]);
         } catch (error) {
-            if (isCancel(error)) {
-                console.log('User cancelled document picker');
-            } else {
-                console.log('Picker error:', error);
-                Alert.alert('Error', 'Failed to pick document');
-            }
+            if (!isCancel(error)) Alert.alert('Error', 'Failed to pick document');
         }
     };
+
     const uploadDocument = async (file: any) => {
-        if (!currentUserId) {
-            Alert.alert('Error', 'User not authenticated');
-            return;
-        }
+        if (!currentUserId) { Alert.alert('Error', 'User not authenticated'); return; }
 
         try {
             setUploadingImage(true);
-
             const fileUri = file.fileCopyUri || file.uri;
             const fileExt = file.name?.split('.').pop()?.toLowerCase() || 'bin';
             const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt);
-
-            //  Use avatars bucket for everything
             const bucket = 'avatars';
-
-            // Organize by folder: chat-images for images, chat-documents for files
             const folder = isImage ? 'chat-images' : 'chat-documents';
             const filePath = `${folder}/${currentUserId}/${Date.now()}.${fileExt}`;
-
-            //  Read file
             const base64 = await RNFS.readFile(fileUri, 'base64');
-
-            // Decode base64 → ArrayBuffer
             const arrayBuffer = decode(base64);
 
-            //  Upload
-            const { error: uploadError } = await supabase.storage
-                .from(bucket)
-                .upload(filePath, arrayBuffer, {
-                    contentType: file.type || 'application/octet-stream',
-                    upsert: true,
-                });
+            const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, arrayBuffer, { contentType: file.type || 'application/octet-stream', upsert: true });
+            if (uploadError) { Alert.alert('Error', `Failed to upload: ${uploadError.message}`); return; }
 
-            if (uploadError) {
-                console.log('Upload error:', uploadError);
-                Alert.alert('Error', `Failed to upload: ${uploadError.message}`);
-                return;
-            }
-
-            // Public URL
-            const { data } = supabase.storage
-                .from(bucket)
-                .getPublicUrl(filePath);
-
-            // Message payload
-            const messageData: any = {
-                sender_id: currentUserId,
-                receiver_id: receiverId,
-                message_text: '',
-            };
+            const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
+            const messageData: any = { sender_id: currentUserId, receiver_id: receiverId, message_text: '' };
 
             if (isImage) {
                 messageData.image_url = data.publicUrl;
@@ -716,26 +622,11 @@ const ChatBox = () => {
                 messageData.file_type = fileExt;
             }
 
-            //  Save message
-            const { error: dbError } = await supabase
-                .from('messages')
-                .insert([messageData]);
+            const { error: dbError } = await supabase.from('messages').insert([messageData]);
+            if (dbError) { Alert.alert('Error', 'Failed to send file'); return; }
 
-            if (dbError) {
-                console.log('Database insert error:', dbError);
-                Alert.alert('Error', 'Failed to send file');
-                return;
-            }
-
-            console.log('File sent successfully');
-            Toast.show({
-                type: 'success',
-                text1: isImage ? 'Image sent!' : 'File sent!',
-                position: 'top',
-            });
-
+            Toast.show({ type: 'success', text1: isImage ? 'Image sent!' : 'File sent!', position: 'top' });
         } catch (err: any) {
-            console.log('❌ Upload failed:', err);
             Alert.alert('Upload failed', err.message || 'Something went wrong');
         } finally {
             setUploadingImage(false);
@@ -752,55 +643,50 @@ const ChatBox = () => {
     }
 
     return (
-        <ImageBackground
-            // source={ImageName.ChatBg}
-            source={background}
-            style={styles.backgroundImage}
-            resizeMode="cover"
-        >
+        <ImageBackground source={background} style={styles.backgroundImage} resizeMode="cover">
             <View style={{ flex: 1 }}>
                 <KeyboardAvoidingView
                     style={styles.container}
-                    // behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     behavior={behaviour}
                     keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
                 >
-                    {/* Top Bar */}
-                    {/* <View style={styles.popbg}> */}
                     {/* Top Bar */}
                     <View style={styles.rowContainer}>
                         <TouchableOpacity onPress={() => navigation.goBack()}>
                             <Image source={ImageName.Back} style={styles.backicon} />
                         </TouchableOpacity>
-                        
-                        <Text style={styles.title}>{userName || 'Chat'}</Text>
+
+                        <View style={{ flex: 1, alignItems: 'center', marginTop: -5, paddingHorizontal: 10 }}>
+                            <Text style={styles.title}>{userName || 'Chat'}</Text>
+                            {/* ✅ FIX: Clean online/offline display using formatter */}
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                                <View style={[
+                                    styles.statusDot,
+                                    { backgroundColor: receiverOnline ? '#22C55E' : '#9CA3AF' }
+                                ]} />
+                                <Text style={[
+                                    styles.statusText,
+                                    { color: receiverOnline ? '#22C55E' : '#6B7280' }
+                                ]}>
+                                    {receiverOnline ? 'Online' : formatLastSeen(receiverLastSeen)}
+                                </Text>
+                            </View>
+                        </View>
 
                         <TouchableOpacity onPress={() => setShowMenu(true)}>
                             <Image source={ImageName.Options} style={styles.options} />
                         </TouchableOpacity>
                     </View>
-                    {/* </View> */}
 
-                    {/* For Clear chat */}
+                    {/* Clear Chat Menu */}
                     {showMenu && (
                         <View style={styles.menuOverlay}>
-                            {/* Closes menu when tapping outside */}
-                            <Pressable
-                                style={styles.overlayBackground}
-                                onPress={() => setShowMenu(false)}
-                            />
-
-                            {/* Menu Box */}
+                            <Pressable style={styles.overlayBackground} onPress={() => setShowMenu(false)} />
                             <View style={styles.menuContainer}>
-                                <TouchableOpacity
-                                    onPress={clearChat}
-                                    style={styles.menuItem}
-                                >
+                                <TouchableOpacity onPress={clearChat} style={styles.menuItem}>
                                     <Text style={styles.menuText}>Clear Chat</Text>
                                 </TouchableOpacity>
-
                                 <View style={styles.menuDivider} />
-
                                 <TouchableOpacity
                                     onPress={() => setShowMenu(false)}
                                     style={styles.menuItem}
@@ -811,7 +697,6 @@ const ChatBox = () => {
                             </View>
                         </View>
                     )}
-
 
                     {/* Messages */}
                     <FlatList
@@ -844,17 +729,13 @@ const ChatBox = () => {
                         <View style={{ gap: 5, flexDirection: 'row' }}>
                             <TouchableOpacity
                                 style={[styles.sendBtn, uploadingImage && styles.sendBtnDisabled, { backgroundColor: '#fff' }]}
-                                // onPress={pickImage}
                                 onPress={selectDoc}
                                 disabled={uploadingImage}
                             >
                                 {uploadingImage ? (
                                     <ActivityIndicator size="small" color="#DA70D6" />
                                 ) : (
-                                    <Image
-                                        source={ImageName.Upload}
-                                        style={styles.icon2}
-                                    />
+                                    <Image source={ImageName.Upload} style={styles.icon2} />
                                 )}
                             </TouchableOpacity>
                             <TouchableOpacity
@@ -865,15 +746,13 @@ const ChatBox = () => {
                                 {sending ? (
                                     <ActivityIndicator size="small" color="#fff" />
                                 ) : (
-                                    <Image
-                                        source={ImageName.Send}
-                                        style={styles.icon}
-                                    />
+                                    <Image source={ImageName.Send} style={styles.icon} />
                                 )}
                             </TouchableOpacity>
                         </View>
                     </View>
                 </KeyboardAvoidingView>
+
                 <ImageView
                     images={imageViewerUri ? [{ uri: imageViewerUri }] : []}
                     imageIndex={0}
@@ -882,36 +761,20 @@ const ChatBox = () => {
                 />
 
                 {/* PDF Viewer Modal */}
-                <Modal
-                    visible={isPdfVisible}
-                    onRequestClose={() => setIsPdfVisible(false)}
-                    animationType="slide"
-                >
+                <Modal visible={isPdfVisible} onRequestClose={() => setIsPdfVisible(false)} animationType="slide">
                     <View style={{ flex: 1, backgroundColor: '#fff' }}>
-                        {/* Simple Header */}
-                        <View style={{
-                            height: 60,
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            paddingHorizontal: 15,
-                            backgroundColor: '#DA70D6',
-                            paddingTop: Platform.OS === 'ios' ? 20 : 0
-                        }}>
+                        <View style={{ height: 60, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, backgroundColor: '#DA70D6', paddingTop: Platform.OS === 'ios' ? 20 : 0 }}>
                             <TouchableOpacity onPress={() => setIsPdfVisible(false)}>
                                 <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>Close</Text>
                             </TouchableOpacity>
                             <Text style={{ color: '#fff', marginLeft: 20, fontSize: 16 }}>PDF Viewer</Text>
                         </View>
-
                         {pdfUri ? (
                             <Pdf
                                 trustAllCerts={false}
                                 source={{ uri: pdfUri, cache: true }}
                                 style={{ flex: 1, width: '100%' }}
-                                onError={(error) => {
-                                    console.log(error);
-                                    Alert.alert("Error", "Cannot display PDF");
-                                }}
+                                onError={(error) => { console.log(error); Alert.alert("Error", "Cannot display PDF"); }}
                             />
                         ) : (
                             <ActivityIndicator size="large" style={{ marginTop: 20 }} />
@@ -927,22 +790,10 @@ const ChatBox = () => {
                 onRequestClose={() => setReactionPickerVisible(false)}
             >
                 <Pressable
-                    style={{
-                        flex: 1,
-                        backgroundColor: 'rgba(0,0,0,0.3)',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                    }}
+                    style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}
                     onPress={() => setReactionPickerVisible(false)}
                 >
-                    <View
-                        style={{
-                            flexDirection: 'row',
-                            backgroundColor: '#fff',
-                            padding: 15,
-                            borderRadius: 30,
-                        }}
-                    >
+                    <View style={{ flexDirection: 'row', backgroundColor: '#fff', padding: 15, borderRadius: 30 }}>
                         {['👍', '❤️', '😂', '😮', '😢', '🔥'].map((emoji) => (
                             <TouchableOpacity
                                 key={emoji}
@@ -958,11 +809,9 @@ const ChatBox = () => {
                                 <Text style={{ fontSize: 26 }}>{emoji}</Text>
                             </TouchableOpacity>
                         ))}
-
                     </View>
                 </Pressable>
             </Modal>
-
         </ImageBackground>
     );
 };
@@ -970,37 +819,10 @@ const ChatBox = () => {
 export default ChatBox;
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        // backgroundColor : 'rgba(64, 124, 212, 0.44)' 
-    },
-    backgroundImage: {
-        flex: 1,
-        width: '100%',
-        height: '100%',
-    },
-    loaderContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#F7F6F1',
-    },
-    loadingText: {
-        marginTop: 10,
-        fontSize: 16,
-        color: '#666',
-    },
-    popbg: {
-        width: '100%',
-        height: 80,
-        // paddingHorizontal: 16,
-        paddingVertical: 12,
-        marginTop: 40,
-        marginLeft: '-5%',
-        // borderRadius: 20,
-        // backgroundColor: 'rgba(255, 255, 255, 0)',
-        // backgroundColor: '#19eb2400',
-    },
+    container: { flex: 1 },
+    backgroundImage: { flex: 1, width: '100%', height: '100%' },
+    loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F7F6F1' },
+    loadingText: { marginTop: 10, fontSize: 16, color: '#666' },
     rowContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -1009,26 +831,38 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         marginTop: 40,
     },
-    title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#000',
-        textAlign: 'center',
-        flex: 1,
+    title: { fontSize: 20, fontWeight: 'bold', color: '#000', textAlign: 'center' },
+    // ✅ NEW: status dot and text styles
+    statusDot: {
+        width: 7,
+        height: 7,
+        borderRadius: 4,
     },
-    backicon: {
+    statusText: {
+        fontSize: 12,
+        fontWeight: '500',
+    },
+    backicon:
+    {
         width: 36,
-        height: 36,
+        height: 36
     },
-    options: {
+    options:
+    {
         width: 36,
-        height: 36,
-        
+        height: 36
     },
-    profileSection: {
-        // leave empty or remove entirely
-    }, // empty — remove or leave blank
-    popBtn: {
+    popbg:
+    {
+        width: '100%',
+        height: 80,
+        paddingVertical: 12,
+        marginTop: 40,
+        marginLeft: '-5%'
+    },
+    profileSection: {},
+    popBtn:
+    {
         height: 40,
         width: 40,
         borderRadius: 20,
@@ -1036,19 +870,20 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: '#DA70D6',
+        borderColor: '#DA70D6'
     },
     icon: { width: 20, height: 20, tintColor: '#fff' },
     icon2: { width: 32, height: 32 },
-    messageBar: {
+    messageBar:
+    {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 10,
         paddingVertical: 8,
-        backgroundColor: '#fff',
-
+        backgroundColor: '#fff'
     },
-    input: {
+    input:
+    {
         flex: 1,
         minHeight: 55,
         maxHeight: 130,
@@ -1060,124 +895,68 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#000',
         backgroundColor: 'rgba(255,255,255,0.1)',
-        marginRight: 10,
+        marginRight: 10
     },
-    sendBtn: {
+    sendBtn:
+    {
         width: 50,
         height: 50,
         borderRadius: 25,
         backgroundColor: '#DA70D6',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'center'
     },
-    sendBtnDisabled: {
-        backgroundColor: '#ccc',
-    },
-    messageBubble: {
+    sendBtnDisabled: { backgroundColor: '#ccc' },
+    messageBubble:
+    {
         padding: 10,
         borderRadius: 10,
         marginVertical: 4,
-        maxWidth: '75%',
+        maxWidth: '75%'
     },
-    messageBubbleRight: {
+    messageBubbleRight:
+    {
         alignSelf: 'flex-end',
         backgroundColor: 'rgba(9, 12, 230, 0.93)',
-        marginRight: 8,
+        marginRight: 8
     },
-    messageBubbleLeft: {
+    messageBubbleLeft:
+    {
         alignSelf: 'flex-start',
-        // backgroundColor: 'rgba(11, 77, 94, 0.93)',
         backgroundColor: '#fff',
-        marginLeft: 8,
+        marginLeft: 8
     },
-    messageText: {
-        color: '#fff',
-        fontSize: 16,
-    },
-    messageImage: {
-        width: 200,
-        height: 200,
-        borderRadius: 10,
-        marginBottom: 5,
-    },
-    messageTime: {
+    messageText: { color: '#fff', fontSize: 16 },
+    messageImage: { width: 200, height: 200, borderRadius: 10, marginBottom: 5 },
+    messageTime:
+    {
         color: '#fff',
         fontSize: 10,
         marginTop: 4,
-        alignSelf: 'flex-end',
+        alignSelf: 'flex-end'
     },
-    emptyContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingTop: 100,
-    },
-    emptyText: {
-        fontSize: 18,
-        color: '#999',
-        fontWeight: '600',
-    },
-    emptySubText: {
-        fontSize: 14,
-        color: '#bbb',
-        marginTop: 8,
-    },
-    fileContainer: {
+    emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 },
+    emptyText: { fontSize: 18, color: '#999', fontWeight: '600' },
+    emptySubText: { fontSize: 14, color: '#bbb', marginTop: 8 },
+    fileContainer:
+    {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
         padding: 10,
         borderRadius: 8,
-        marginBottom: 5,
+        marginBottom: 5
     },
-    fileIcon: {
-        fontSize: 32,
-        marginRight: 10,
-    },
-    fileInfo: {
-        flex: 1,
-    },
-    fileName: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '600',
-        marginBottom: 2,
-    },
-    fileType: {
-        color: '#fff',
-        fontSize: 11,
-        opacity: 0.8,
-    },
-
-    menuItem: {
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-    },
-
-    menuText: {
-        fontSize: 14,
-        color: '#000',
-    },
-
-    menuOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        justifyContent: 'flex-start',
-        alignItems: 'flex-end',
-        zIndex: 999,
-    },
-    overlayBackground: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 1,
-    },
-    menuContainer: {
+    fileIcon: { fontSize: 32, marginRight: 10 },
+    fileInfo: { flex: 1 },
+    fileName: { color: '#fff', fontSize: 14, fontWeight: '600', marginBottom: 2 },
+    fileType: { color: '#fff', fontSize: 11, opacity: 0.8 },
+    menuItem: { paddingVertical: 12, paddingHorizontal: 16 },
+    menuText: { fontSize: 14, color: '#000' },
+    menuOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'flex-start', alignItems: 'flex-end', zIndex: 999 },
+    overlayBackground: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 },
+    menuContainer:
+    {
         backgroundColor: '#fff',
         borderRadius: 12,
         paddingVertical: 8,
@@ -1189,14 +968,7 @@ const styles = StyleSheet.create({
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.15,
-        shadowRadius: 6,
+        shadowRadius: 6
     },
-    menuDivider: {
-        height: 1,
-        backgroundColor: '#f0f0f0',
-        marginHorizontal: 8,
-    },
-
-
+    menuDivider: { height: 1, backgroundColor: '#f0f0f0', marginHorizontal: 8 },
 });
-
