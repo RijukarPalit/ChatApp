@@ -35,40 +35,45 @@ const ProfileScreen = () => {
   const [uploadingImage, setUploadingImage] = useState(false)
   const [showImageOptions, setShowImageOptions] = useState(false)
 
+
+  useEffect(() => {
+    fetchUserProfile()
+  }, [])
+
   /* ================= FETCH USER PROFILE ================= */
-  const fetchUserProfile = async () => {
-    try {
-      const { data: authData, error: authError } =
-        await supabase.auth.getUser()
+ const fetchUserProfile = async () => {
+  try {
+    const { data: authData, error: authError } = await supabase.auth.getUser();
 
-      if (authError || !authData?.user) {
-        console.log('Auth error:', authError)
-        return
-      }
+    if (authError || !authData?.user) return;
 
-      const { data, error } = await supabase
-        .from('user')
-        .select('firstName, lastName, email, city, location, profileImage')
-        .eq('id', authData.user.id)
-        .single()
+    const { data, error } = await supabase
+      .from('user')
+      .select('firstName, lastName, email, city, location, profileImage')
+      .eq('id', authData.user.id)
+      .single();
 
-      if (error) {
-        console.log('Profile fetch error:', error)
-        return
-      }
-
-      console.log('Fetched profile:', data)
-
-      setFirstName(data?.firstName || '')
-      setLastName(data?.lastName || '')
-      setEmail(data?.email || '')
-      setCity(data?.city || '')
-      setLocation(data?.location || '')
-      setProfileImage(data?.profileImage || null)
-    } catch (err) {
-      console.log('Unexpected error:', err)
+    if (error) {
+      console.log('Profile fetch error:', error);
+      return;
     }
+
+    // Google metadata fallback if DB fields are empty
+    const meta = authData.user.user_metadata;
+    const fullName = meta?.full_name || '';
+    const nameParts = fullName.split(' ');
+
+    setFirstName(data?.firstName || meta?.given_name || nameParts[0] || '');
+    setLastName(data?.lastName  || meta?.family_name || nameParts.slice(1).join(' ') || '');
+    setEmail(data?.email || authData.user.email || '');
+    setCity(data?.city || '');
+    setLocation(data?.location || '');
+    setProfileImage(data?.profileImage || meta?.avatar_url || null);
+
+  } catch (err) {
+    console.log('Unexpected error:', err);
   }
+};
 
 
   /* ================= PICK IMAGE ================= */

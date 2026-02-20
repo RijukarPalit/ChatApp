@@ -772,7 +772,7 @@ const ChatBox = () => {
                         <TouchableOpacity onPress={() => navigation.goBack()}>
                             <Image source={ImageName.Back} style={styles.backicon} />
                         </TouchableOpacity>
-
+                        
                         <Text style={styles.title}>{userName || 'Chat'}</Text>
 
                         <TouchableOpacity onPress={() => setShowMenu(true)}>
@@ -1039,7 +1039,7 @@ const styles = StyleSheet.create({
         borderColor: '#DA70D6',
     },
     icon: { width: 20, height: 20, tintColor: '#fff' },
-    icon2: { width: 20, height: 20 },
+    icon2: { width: 32, height: 32 },
     messageBar: {
         flexDirection: 'row',
         alignItems: 'center',

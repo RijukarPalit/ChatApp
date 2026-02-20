@@ -65,10 +65,15 @@ const Settings = () => {
                 return
             }
 
-            setFirstName(data?.firstName || '')
-            setLastName(data?.lastName || '')
-            setEmail(data?.email || '')
-            setProfileImage(data?.profileImage || null)
+            //For google user data
+            const meta = authData.user.user_metadata
+            const fullName = meta?.full_name || ''
+            const namePart = fullName.split(' ')
+
+            setFirstName(data?.firstName || meta?.given_name || namePart[0] || '')
+             setLastName(data?.lastName || meta?.family_name || nameParts.slice(1).join(' ') || '')
+            setEmail(data?.email || authData.user.email || '')
+            setProfileImage(data?.profileImage || meta?.avatar_url || null)
 
         } catch (err) {
             console.log('Unexpected error:', err)
