@@ -61,24 +61,24 @@ interface RouteParams {
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
-    primary:        '#5B5FEF',
-    primaryDark:    '#4347C9',
-    primaryLight:   '#ECEEFF',
-    sent:           '#5B5FEF',
-    received:       '#FFFFFF',
-    sentText:       '#FFFFFF',
-    receivedText:   '#1A1A2E',
-    bg:             '#F0F2FF',
-    headerBg:       '#FFFFFF',
-    inputBg:        '#FFFFFF',
-    border:         '#E4E6FF',
-    muted:          '#9B9DB8',
-    online:         '#22C55E',
-    offline:        '#D1D5DB',
-    danger:         '#EF4444',
-    shadow:         'rgba(91,95,239,0.18)',
-    sentTime:       'rgba(255,255,255,0.72)',
-    receivedTime:   '#B0B3CC',
+    primary: '#5B5FEF',
+    primaryDark: '#4347C9',
+    primaryLight: '#ECEEFF',
+    sent: '#5B5FEF',
+    received: '#FFFFFF',
+    sentText: '#FFFFFF',
+    receivedText: '#1A1A2E',
+    bg: '#F0F2FF',
+    headerBg: '#FFFFFF',
+    inputBg: '#FFFFFF',
+    border: '#E4E6FF',
+    muted: '#9B9DB8',
+    online: '#22C55E',
+    offline: '#D1D5DB',
+    danger: '#EF4444',
+    shadow: 'rgba(91,95,239,0.18)',
+    sentTime: 'rgba(255,255,255,0.72)',
+    receivedTime: '#B0B3CC',
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -87,28 +87,28 @@ const ChatBox = () => {
     const route = useRoute();
     const { userId: receiverId, userName } = route.params as RouteParams;
 
-    const [messageList, setMessageList]             = useState<Message[]>([]);
-    const [inputText, setInputText]                 = useState('');
-    const [loading, setLoading]                     = useState(true);
-    const [sending, setSending]                     = useState(false);
-    const [currentUserId, setCurrentUserId]         = useState<string | null>(null);
+    const [messageList, setMessageList] = useState<Message[]>([]);
+    const [inputText, setInputText] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [sending, setSending] = useState(false);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
-    const [imageViewerUri, setImageViewerUri]       = useState<string | null>(null);
-    const [currentUserName, setCurrentUserName]     = useState<string>('');
-    const [isPdfVisible, setIsPdfVisible]           = useState(false);
-    const [pdfUri, setPdfUri]                       = useState<string | null>(null);
+    const [imageViewerUri, setImageViewerUri] = useState<string | null>(null);
+    const [currentUserName, setCurrentUserName] = useState<string>('');
+    const [isPdfVisible, setIsPdfVisible] = useState(false);
+    const [pdfUri, setPdfUri] = useState<string | null>(null);
     const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
     const [reactionPickerVisible, setReactionPickerVisible] = useState(false);
-    const [receiverOnline, setReceiverOnline]       = useState<boolean>(false);
-    const [receiverLastSeen, setReceiverLastSeen]   = useState<string | null>(null);
-    const [showMenu, setShowMenu]                   = useState(false);
-    const [uploadingImage, setUploadingImage]       = useState(false);
+    const [receiverOnline, setReceiverOnline] = useState<boolean>(false);
+    const [receiverLastSeen, setReceiverLastSeen] = useState<string | null>(null);
+    const [showMenu, setShowMenu] = useState(false);
+    const [uploadingImage, setUploadingImage] = useState(false);
 
     const { background } = useChatBackground();
-    const flatListRef        = useRef<FlatList>(null);
-    const channelRef         = useRef<RealtimeChannel | null>(null);
-    const currentUserIdRef   = useRef<string | null>(null);
-    const behaviour          = useKeyboardBehavior();
+    const flatListRef = useRef<FlatList>(null);
+    const channelRef = useRef<RealtimeChannel | null>(null);
+    const currentUserIdRef = useRef<string | null>(null);
+    const behaviour = useKeyboardBehavior();
 
     const SUPABASE_FUNCTION_URL =
         'https://uphnjyseymtnimskcepk.functions.supabase.co/send-notification';
@@ -616,11 +616,13 @@ const s = StyleSheet.create({
     root: { flex: 1, width: '100%', height: '100%' },
 
     // Loading
-    loaderBg:    { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: C.bg },
-    loaderCard:  { alignItems: 'center', backgroundColor: '#fff', borderRadius: 28, padding: 44,
-                   shadowColor: C.shadow, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 1, shadowRadius: 28, elevation: 14 },
+    loaderBg: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: C.bg },
+    loaderCard: {
+        alignItems: 'center', backgroundColor: '#fff', borderRadius: 28, padding: 44,
+        shadowColor: C.shadow, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 1, shadowRadius: 28, elevation: 14
+    },
     loaderTitle: { marginTop: 20, fontSize: 17, fontWeight: '700', color: C.receivedText, letterSpacing: 0.2 },
-    loaderSub:   { marginTop: 6, fontSize: 13, color: C.muted },
+    loaderSub: { marginTop: 6, fontSize: 13, color: C.muted },
     icon: { width: 24, height: 24 },
     // Header
     header: {
@@ -651,11 +653,11 @@ const s = StyleSheet.create({
         width: 12, height: 12, borderRadius: 6,
         borderWidth: 2, borderColor: C.headerBg,
     },
-    headerMeta:   { flex: 1 },
-    headerName:   { fontSize: 16, fontWeight: '700', color: C.receivedText, letterSpacing: 0.1 },
+    headerMeta: { flex: 1 },
+    headerName: { fontSize: 16, fontWeight: '700', color: C.receivedText, letterSpacing: 0.1 },
     headerStatus: { fontSize: 12, fontWeight: '500', marginTop: 2 },
-    dotsWrap:     { gap: 3, alignItems: 'center' },
-    dot:          { width: 4, height: 4, borderRadius: 2, backgroundColor: C.primary },
+    dotsWrap: { gap: 3, alignItems: 'center' },
+    dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: C.primary },
 
     // Menu
     menuCard: {
@@ -666,26 +668,26 @@ const s = StyleSheet.create({
         paddingVertical: 6, width: 188,
         shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.14, shadowRadius: 20, elevation: 12,
     },
-    menuItem:    { paddingVertical: 15, paddingHorizontal: 20 },
-    menuDanger:  { fontSize: 14, fontWeight: '700', color: C.danger },
-    menuCancel:  { fontSize: 14, fontWeight: '500', color: C.muted },
+    menuItem: { paddingVertical: 15, paddingHorizontal: 20 },
+    menuDanger: { fontSize: 14, fontWeight: '700', color: C.danger },
+    menuCancel: { fontSize: 14, fontWeight: '500', color: C.muted },
     menuDivider: { height: 1, backgroundColor: C.border, marginHorizontal: 12 },
 
     // Messages
     listContent: { paddingHorizontal: 14, paddingVertical: 18 },
 
     // Date separator
-    dateSep:   { flexDirection: 'row', alignItems: 'center', marginVertical: 18, paddingHorizontal: 4 },
-    dateLine:  { flex: 1, height: 1, backgroundColor: 'rgba(0,0,0,0.07)' },
+    dateSep: { flexDirection: 'row', alignItems: 'center', marginVertical: 18, paddingHorizontal: 4 },
+    dateLine: { flex: 1, height: 1, backgroundColor: 'rgba(0,0,0,0.07)' },
     dateLabel: { marginHorizontal: 10, fontSize: 11, fontWeight: '700', color: C.muted, letterSpacing: 0.8, textTransform: 'uppercase' },
 
     // Message rows
-    msgRow:      { flexDirection: 'row', alignItems: 'flex-end', marginVertical: 3 },
+    msgRow: { flexDirection: 'row', alignItems: 'flex-end', marginVertical: 3 },
     msgRowRight: { justifyContent: 'flex-end' },
-    msgRowLeft:  { justifyContent: 'flex-start' },
+    msgRowLeft: { justifyContent: 'flex-start' },
 
     // Small avatar
-    smallAvatar:     { width: 32, height: 32, borderRadius: 16, backgroundColor: C.primaryLight, justifyContent: 'center', alignItems: 'center', marginRight: 6, marginBottom: 4 },
+    smallAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: C.primaryLight, justifyContent: 'center', alignItems: 'center', marginRight: 6, marginBottom: 4 },
     smallAvatarText: { fontSize: 11, fontWeight: '800', color: C.primary },
 
     // Bubbles
@@ -694,15 +696,15 @@ const s = StyleSheet.create({
         paddingHorizontal: 14, paddingTop: 10, paddingBottom: 8,
         shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4, elevation: 2,
     },
-    bubbleSent:     { backgroundColor: C.sent, borderBottomRightRadius: 4 },
+    bubbleSent: { backgroundColor: C.sent, borderBottomRightRadius: 4 },
     bubbleReceived: { backgroundColor: C.received, borderBottomLeftRadius: 4 },
 
     imgWrapper: { borderRadius: 16, overflow: 'hidden', marginBottom: 6 },
-    msgImage:   { width: 210, height: 210 },
-    msgText:    { fontSize: 15, lineHeight: 22, letterSpacing: 0.1 },
-    timeRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 5 },
-    timeText:   { fontSize: 10, fontWeight: '500' },
-    tick:       { fontSize: 11, fontWeight: '700' },
+    msgImage: { width: 210, height: 210 },
+    msgText: { fontSize: 15, lineHeight: 22, letterSpacing: 0.1 },
+    timeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 5 },
+    timeText: { fontSize: 10, fontWeight: '500' },
+    tick: { fontSize: 11, fontWeight: '700' },
 
     // Reactions
     reactionsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 5, marginHorizontal: 2 },
@@ -718,19 +720,19 @@ const s = StyleSheet.create({
     reactionCount: { fontSize: 11, fontWeight: '700', color: C.muted, marginLeft: 4 },
 
     // Files
-    fileCard:         { flexDirection: 'row', alignItems: 'center', borderRadius: 14, padding: 10, marginBottom: 6 },
-    fileCardSent:     { backgroundColor: 'rgba(255,255,255,0.16)' },
+    fileCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 14, padding: 10, marginBottom: 6 },
+    fileCardSent: { backgroundColor: 'rgba(255,255,255,0.16)' },
     fileCardReceived: { backgroundColor: C.primaryLight },
-    fileIconCircle:   { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.22)', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-    fileIconEmoji:    { fontSize: 22 },
-    fileName:         { fontSize: 13, fontWeight: '600', marginBottom: 2 },
-    fileExt:          { fontSize: 10, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' },
+    fileIconCircle: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.22)', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
+    fileIconEmoji: { fontSize: 22 },
+    fileName: { fontSize: 13, fontWeight: '600', marginBottom: 2 },
+    fileExt: { fontSize: 10, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' },
 
     // Empty state
-    emptyWrap:  { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 90 },
-    emptyRing:  { width: 84, height: 84, borderRadius: 42, backgroundColor: C.primaryLight, justifyContent: 'center', alignItems: 'center', marginBottom: 18 },
+    emptyWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 90 },
+    emptyRing: { width: 84, height: 84, borderRadius: 42, backgroundColor: C.primaryLight, justifyContent: 'center', alignItems: 'center', marginBottom: 18 },
     emptyTitle: { fontSize: 18, fontWeight: '800', color: C.receivedText, marginBottom: 7 },
-    emptySub:   { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 21 },
+    emptySub: { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 21 },
 
     // Input bar
     inputBar: {
@@ -741,7 +743,7 @@ const s = StyleSheet.create({
         borderTopWidth: 1, borderTopColor: C.border,
         gap: 8,
     },
-    attachBtn:  { width: 46, height: 46, borderRadius: 23, backgroundColor: C.primaryLight, justifyContent: 'center', alignItems: 'center' },
+    attachBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: C.primaryLight, justifyContent: 'center', alignItems: 'center' },
     attachIcon: { fontSize: 28, color: C.primary, marginTop: -2 },
     textInput: {
         flex: 1, minHeight: 46, maxHeight: 120,
@@ -758,7 +760,7 @@ const s = StyleSheet.create({
         shadowColor: C.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 10, elevation: 5,
     },
     sendBtnOff: { backgroundColor: C.border, shadowOpacity: 0, elevation: 0 },
-    sendArrow:  { fontSize: 18, color: '#fff', marginLeft: 2 },
+    sendArrow: { fontSize: 18, color: '#fff', marginLeft: 2 },
 
     // PDF bar
     pdfBar: {
@@ -767,9 +769,9 @@ const s = StyleSheet.create({
         paddingHorizontal: 16, paddingBottom: 14,
         backgroundColor: C.primary,
     },
-    pdfCloseBtn:  { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.22)', justifyContent: 'center', alignItems: 'center' },
+    pdfCloseBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.22)', justifyContent: 'center', alignItems: 'center' },
     pdfCloseText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-    pdfTitle:     { flex: 1, color: '#fff', fontSize: 16, fontWeight: '700', textAlign: 'center' },
+    pdfTitle: { flex: 1, color: '#fff', fontSize: 16, fontWeight: '700', textAlign: 'center' },
 
     // Reaction picker
     reactionOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.42)', justifyContent: 'center', alignItems: 'center' },
@@ -780,6 +782,6 @@ const s = StyleSheet.create({
         shadowColor: '#000', shadowOffset: { width: 0, height: 14 }, shadowOpacity: 0.22, shadowRadius: 28, elevation: 18,
     },
     reactionLabel: { fontSize: 11, fontWeight: '800', color: C.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14 },
-    reactionRow:   { flexDirection: 'row', gap: 8 },
-    reactionBtn:   { width: 50, height: 50, borderRadius: 25, backgroundColor: C.primaryLight, justifyContent: 'center', alignItems: 'center' },
+    reactionRow: { flexDirection: 'row', gap: 8 },
+    reactionBtn: { width: 50, height: 50, borderRadius: 25, backgroundColor: C.primaryLight, justifyContent: 'center', alignItems: 'center' },
 });
