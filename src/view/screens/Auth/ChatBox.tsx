@@ -516,9 +516,9 @@ const ChatBox = () => {
                         showsVerticalScrollIndicator={false}
                         ListEmptyComponent={
                             <View style={s.emptyWrap}>
-                                <View style={s.emptyRing}>
+                                {/* <View style={s.emptyRing}>
                                     <Text style={{ fontSize: 36 }}>💬</Text>
-                                </View>
+                                </View> */}
                                 <Text style={s.emptyTitle}>No messages yet</Text>
                                 <Text style={s.emptySub}>Say hello and start the conversation!</Text>
                             </View>
