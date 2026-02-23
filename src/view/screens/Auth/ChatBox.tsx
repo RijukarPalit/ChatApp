@@ -418,50 +418,36 @@ const ChatBox = () => {
             'Clear Chat',
             'Are you sure you want to delete all messages? This action cannot be undone.',
             [
-                {
-                    text: 'Cancel',
-                    style: 'cancel',
-                    onPress: () => { setShowMenu(false); },
-                },
+                { text: 'Cancel', style: 'cancel', onPress: () => setShowMenu(false) },
                 {
                     text: 'Delete',
                     style: 'destructive',
                     onPress: async () => {
                         setShowMenu(false);
-
-                        if (!currentUserId) {
-                            Alert.alert('Error', 'You must be logged in');
-                            return;
-                        }
+                        if (!currentUserId) { Alert.alert('Error', 'You must be logged in'); return; }
 
                         try {
-                            const { data: messagesToDelete, error: fetchError } = await supabase
-                                .from('messages')
-                                .select('id')
-                                .or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${currentUserId})`);
-
-                            if (fetchError) {
-                                Alert.alert('Error', 'Failed to fetch messages');
-                                return;
-                            }
-
-                            if (!messagesToDelete || messagesToDelete.length === 0) {
-                                Toast.show({ type: 'info', text1: 'No messages to delete', position: 'top' });
-                                return;
-                            }
-
-                            const { error: deleteError } = await supabase
+                            // ✅ Two simple queries — no .or() compound filter
+                            const { error: error1 } = await supabase
                                 .from('messages')
                                 .delete()
-                                .or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${currentUserId})`);
+                                .eq('sender_id', currentUserId)
+                                .eq('receiver_id', receiverId);
 
-                            if (deleteError) {
-                                Alert.alert('Error', `Failed to delete messages: ${deleteError.message}`);
+                            const { error: error2 } = await supabase
+                                .from('messages')
+                                .delete()
+                                .eq('sender_id', receiverId)
+                                .eq('receiver_id', currentUserId);
+
+                            if (error1 || error2) {
+                                Alert.alert('Error', `Failed to delete: ${error1?.message || error2?.message}`);
                                 return;
                             }
 
                             setMessageList([]);
-                            Toast.show({ type: 'success', text1: 'Chat cleared', text2: `${messagesToDelete.length} messages deleted permanently`, position: 'top' });
+                            Toast.show({ type: 'success', text1: 'Chat cleared', position: 'top' });
+
                         } catch (err: any) {
                             Alert.alert('Error', err?.message || 'Something went wrong');
                         }
@@ -470,7 +456,65 @@ const ChatBox = () => {
             ]
         );
     };
-    
+
+    // const clearChat = () => {
+    //     Alert.alert(
+    //         'Clear Chat',
+    //         'Are you sure you want to delete all messages? This action cannot be undone.',
+    //         [
+    //             {
+    //                 text: 'Cancel',
+    //                 style: 'cancel',
+    //                 onPress: () => { setShowMenu(false); },
+    //             },
+    //             {
+    //                 text: 'Delete',
+    //                 style: 'destructive',
+    //                 onPress: async () => {
+    //                     setShowMenu(false);
+
+    //                     if (!currentUserId) {
+    //                         Alert.alert('Error', 'You must be logged in');
+    //                         return;
+    //                     }
+
+    //                     try {
+    //                         const { data: messagesToDelete, error: fetchError } = await supabase
+    //                             .from('messages')
+    //                             .select('id')
+    //                             .or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${currentUserId})`);
+
+    //                         if (fetchError) {
+    //                             Alert.alert('Error', 'Failed to fetch messages');
+    //                             return;
+    //                         }
+
+    //                         if (!messagesToDelete || messagesToDelete.length === 0) {
+    //                             Toast.show({ type: 'info', text1: 'No messages to delete', position: 'top' });
+    //                             return;
+    //                         }
+
+    //                         const { error: deleteError } = await supabase
+    //                             .from('messages')
+    //                             .delete()
+    //                             .or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${currentUserId})`);
+
+    //                         if (deleteError) {
+    //                             Alert.alert('Error', `Failed to delete messages: ${deleteError.message}`);
+    //                             return;
+    //                         }
+
+    //                         setMessageList([]);
+    //                         Toast.show({ type: 'success', text1: 'Chat cleared', text2: `${messagesToDelete.length} messages deleted permanently`, position: 'top' });
+    //                     } catch (err: any) {
+    //                         Alert.alert('Error', err?.message || 'Something went wrong');
+    //                     }
+    //                 },
+    //             },
+    //         ]
+    //     );
+    // };
+
 
     // ✅ FIX: Friendly "last seen" formatter
     const formatLastSeen = (isoString: string | null): string => {
