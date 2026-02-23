@@ -22,3 +22,5 @@ export const NewChatSplash = require ('../../asserts/images/SplashScreenNew.png'
 export const ChatBg2 = require ('../../asserts/images/chatBg2.jpg') as ImageRequireSource;
 export const ChatBg3 = require ('../../asserts/images/ChatBg3.jpg') as ImageRequireSource;
 export const ChatBg4 = require ('../../asserts/images/ChatBg4.jpg') as ImageRequireSource;
+export const NewSend = require ('../../asserts/images/newSend.png') as ImageRequireSource;
+export const Plus = require ('../../asserts/images/plus.png') as ImageRequireSource;
