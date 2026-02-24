@@ -401,58 +401,58 @@ const ChatBox = () => {
     };
 
     // for block user
-  const blockUser = async () => {
-    if (!currentUserId) {
-        Alert.alert('Error', 'You must be logged in');
-        return;
-    }
+    const blockUser = async () => {
+        if (!currentUserId) {
+            Alert.alert('Error', 'You must be logged in');
+            return;
+        }
 
-    try {
-        // 🔍 Check if already blocked
-        const { data: existingBlock } = await supabase
-            .from('blocked_users')
-            .select('id')
-            .eq('user_id', currentUserId)
-            .eq('blocked_user_id', receiverId)
-            .maybeSingle();
+        try {
+            // 🔍 Check if already blocked
+            const { data: existingBlock } = await supabase
+                .from('blocked_users')
+                .select('id')
+                .eq('user_id', currentUserId)
+                .eq('blocked_user_id', receiverId)
+                .maybeSingle();
 
-        if (existingBlock) {
+            if (existingBlock) {
+                Toast.show({
+                    type: 'info',
+                    text1: 'User already blocked',
+                    position: 'top',
+                });
+                return;
+            }
+
+            // ✅ Insert block
+            const { error } = await supabase
+                .from('blocked_users')
+                .insert([
+                    {
+                        user_id: currentUserId,
+                        blocked_user_id: receiverId,
+                    },
+                ]);
+
+            if (error) {
+                Alert.alert('Error', error.message);
+                return;
+            }
+
+            setIsBlocked(true);
+            setShowMenu(false);
+
             Toast.show({
-                type: 'info',
-                text1: 'User already blocked',
+                type: 'success',
+                text1: 'User blocked successfully',
                 position: 'top',
             });
-            return;
+
+        } catch (err: any) {
+            Alert.alert('Error', err.message || 'Something went wrong');
         }
-
-        // ✅ Insert block
-        const { error } = await supabase
-            .from('blocked_users')
-            .insert([
-                {
-                    user_id: currentUserId,
-                    blocked_user_id: receiverId,
-                },
-            ]);
-
-        if (error) {
-            Alert.alert('Error', error.message);
-            return;
-        }
-
-        setIsBlocked(true);
-        setShowMenu(false);
-
-        Toast.show({
-            type: 'success',
-            text1: 'User blocked successfully',
-            position: 'top',
-        });
-
-    } catch (err: any) {
-        Alert.alert('Error', err.message || 'Something went wrong');
-    }
-};
+    };
 
 
     const unblockUser = async () => {
@@ -818,11 +818,29 @@ const ChatBox = () => {
 export default ChatBox;
 
 const s = StyleSheet.create({
-    root: { flex: 1, width: '100%', height: '100%' },
-    loaderBg: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: C.bg },
+    root:
+    {
+        flex: 1,
+        width: '100%',
+        height: '100%'
+    },
+    loaderBg:
+    {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: C.bg
+    },
     loaderCard: {
-        alignItems: 'center', backgroundColor: '#fff', borderRadius: 28, padding: 44,
-        shadowColor: C.shadow, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 1, shadowRadius: 28, elevation: 14
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderRadius: 28,
+        padding: 44,
+        shadowColor: C.shadow,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 1,
+        shadowRadius: 28,
+        elevation: 14
     },
     loaderTitle: { marginTop: 20, fontSize: 17, fontWeight: '700', color: C.receivedText, letterSpacing: 0.2 },
     loaderSub: { marginTop: 6, fontSize: 13, color: C.muted },
@@ -836,16 +854,58 @@ const s = StyleSheet.create({
         shadowColor: C.shadow, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 1, shadowRadius: 10, elevation: 5,
         gap: 8,
     },
-    iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: C.primaryLight, justifyContent: 'center', alignItems: 'center' },
-    backChevron: { fontSize: 30, color: C.primary, fontWeight: '300', marginTop: -2 },
-    headerAvatarWrap: { width: 44, height: 44, borderRadius: 22, backgroundColor: C.primary, justifyContent: 'center', alignItems: 'center', position: 'relative' },
-    headerAvatarText: { color: '#fff', fontSize: 15, fontWeight: '800', letterSpacing: 0.5 },
-    onlineDot: { position: 'absolute', bottom: 1, right: 1, width: 12, height: 12, borderRadius: 6, borderWidth: 2, borderColor: C.headerBg },
+    iconBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: C.primaryLight,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    backChevron:
+    {
+        fontSize: 30,
+        color: C.primary,
+        fontWeight: '300',
+        marginTop: -2
+    },
+    headerAvatarWrap:
+    {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: C.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        position: 'relative'
+    },
+    headerAvatarText: {
+        color: '#fff',
+        fontSize: 15,
+        fontWeight: '800',
+        letterSpacing: 0.5
+    },
+    onlineDot:
+    {
+        position: 'absolute',
+        bottom: 1,
+        right: 1,
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: C.headerBg
+    },
     headerMeta: { flex: 1 },
     headerName: { fontSize: 16, fontWeight: '700', color: C.receivedText, letterSpacing: 0.1 },
     headerStatus: { fontSize: 12, fontWeight: '500', marginTop: 2 },
     dotsWrap: { gap: 3, alignItems: 'center' },
-    dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: C.primary },
+    dot: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: C.primary
+    },
     menuCard: {
         position: 'absolute', top: Platform.OS === 'ios' ? 108 : 94, right: 14, zIndex: 1000,
         backgroundColor: '#fff', borderRadius: 18, paddingVertical: 6, width: 188,
