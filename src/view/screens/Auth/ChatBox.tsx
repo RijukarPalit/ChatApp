@@ -401,58 +401,58 @@ const ChatBox = () => {
     };
 
     // for block user
-    const blockUser = async () => {
-        if (!currentUserId) {
-            Alert.alert('Error', 'You must be logged in');
+  const blockUser = async () => {
+    if (!currentUserId) {
+        Alert.alert('Error', 'You must be logged in');
+        return;
+    }
+
+    try {
+        // 🔍 Check if already blocked
+        const { data: existingBlock } = await supabase
+            .from('blocked_users')
+            .select('id')
+            .eq('user_id', currentUserId)
+            .eq('blocked_user_id', receiverId)
+            .maybeSingle();
+
+        if (existingBlock) {
+            Toast.show({
+                type: 'info',
+                text1: 'User already blocked',
+                position: 'top',
+            });
             return;
         }
 
-        try {
-            // 🔍 Check if already blocked
-            const { data: existingBlock } = await supabase
-                .from('blocked_users')
-                .select('id')
-                .eq('user_id', currentUserId)
-                .eq('blocked_user_id', receiverId)
-                .maybeSingle();
+        // ✅ Insert block
+        const { error } = await supabase
+            .from('blocked_users')
+            .insert([
+                {
+                    user_id: currentUserId,
+                    blocked_user_id: receiverId,
+                },
+            ]);
 
-            if (existingBlock) {
-                Toast.show({
-                    type: 'info',
-                    text1: 'User already blocked',
-                    position: 'top',
-                });
-                return;
-            }
-
-            // ✅ Insert block
-            const { error } = await supabase
-                .from('blocked_users')
-                .insert([
-                    {
-                        user_id: currentUserId,
-                        blocked_user_id: receiverId,
-                    },
-                ]);
-
-            if (error) {
-                Alert.alert('Error', error.message);
-                return;
-            }
-
-            setIsBlocked(true);
-            setShowMenu(false);
-
-            Toast.show({
-                type: 'success',
-                text1: 'User blocked successfully',
-                position: 'top',
-            });
-
-        } catch (err: any) {
-            Alert.alert('Error', err.message || 'Something went wrong');
+        if (error) {
+            Alert.alert('Error', error.message);
+            return;
         }
-    };
+
+        setIsBlocked(true);
+        setShowMenu(false);
+
+        Toast.show({
+            type: 'success',
+            text1: 'User blocked successfully',
+            position: 'top',
+        });
+
+    } catch (err: any) {
+        Alert.alert('Error', err.message || 'Something went wrong');
+    }
+};
 
 
     const unblockUser = async () => {
