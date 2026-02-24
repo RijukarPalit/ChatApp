@@ -35,7 +35,7 @@ class NotificationService {
     });
   }
 
-  // ✅ Unified Navigation Logic
+  //  Unified Navigation Logic
   private handleNavigation(navigation: any, data: any) {
     if (data?.userId && navigation) {
       navigation.navigate('ChatBox', {
@@ -65,14 +65,14 @@ class NotificationService {
 
     // 2. Background Tap
     messaging().onNotificationOpenedApp(remoteMessage => {
-      console.log('📂 Background tap:', remoteMessage.data);
+      console.log(' Background tap:', remoteMessage.data);
       this.handleNavigation(navigation, remoteMessage.data);
     });
 
     // 3. Quit State Tap
     messaging().getInitialNotification().then(remoteMessage => {
       if (remoteMessage) {
-        console.log('🚀 Quit state tap:', remoteMessage.data);
+        console.log('Quit state tap:', remoteMessage.data);
         this.handleNavigation(navigation, remoteMessage.data);
       }
     });

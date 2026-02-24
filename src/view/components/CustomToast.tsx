@@ -27,7 +27,7 @@ const CustomToast = {
 const styles = StyleSheet.create({
   toastContainer: {
     backgroundColor: 'rgba(10, 26, 170, 0.88)',
-    borderLeftWidth: 0, // removes default green/red bar\
+    borderLeftWidth: 0, // removes default green/red bar
     borderRadius: 12,
   },
   toastText: {

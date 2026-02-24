@@ -14,7 +14,7 @@ import messaging from '@react-native-firebase/messaging'
 import notificationService from './src/utils/notificationService'
 import { ChatBackgroundProvider } from './src/context/ChangeBackgrounContext'
 
-// ✅ 1. Register background handler at the very top (Outside component)
+//  1. Register background handler at the very top (Outside component)
 messaging().setBackgroundMessageHandler(async remoteMessage => {
   console.log('🌙 Background message received:', remoteMessage);
 });
@@ -25,7 +25,7 @@ const App = () => {
   const navigationRef = useRef<any>(null)
 
   useEffect(() => {
-    // ✅ 2. Initialize permissions and channel only once
+    //  2. Initialize permissions and channel only once
     const init = async () => {
       await notificationService.requestUserPermission();
       await notificationService.createNotificationChannel();
@@ -40,7 +40,7 @@ const App = () => {
           ref={navigationRef}
           onReady={() => {
             if (navigationRef.current) {
-              // ✅ 3. Single source of truth for all listeners
+              //  3. Single source of truth for all listeners
               notificationService.setupMessageListeners(navigationRef.current)
             }
           }}
