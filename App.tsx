@@ -1,6 +1,9 @@
 import React, { useEffect, useRef } from 'react'
 import { NavigationContainer } from '@react-navigation/native'
 import { createStackNavigator } from '@react-navigation/stack'
+// 1. Import TanStack Query items
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
 import Splash from './src/view/screens/Auth/Splash'
 import OnBoarding from './src/view/screens/Auth/OnBoarding'
 import SignUp from './src/view/screens/Auth/SignUp'
@@ -13,8 +16,11 @@ import Toast from 'react-native-toast-message'
 import messaging from '@react-native-firebase/messaging'
 import notificationService from './src/utils/notificationService'
 import { ChatBackgroundProvider } from './src/context/ChangeBackgrounContext'
+import Notification from './src/view/screens/Auth/MainTabs/Notification'
 
-//  1. Register background handler at the very top (Outside component)
+// 2. Create a client instance (outside the component to avoid re-renders)
+const queryClient = new QueryClient()
+
 messaging().setBackgroundMessageHandler(async remoteMessage => {
   console.log('🌙 Background message received:', remoteMessage);
 });
@@ -25,7 +31,6 @@ const App = () => {
   const navigationRef = useRef<any>(null)
 
   useEffect(() => {
-    //  2. Initialize permissions and channel only once
     const init = async () => {
       await notificationService.requestUserPermission();
       await notificationService.createNotificationChannel();
@@ -34,13 +39,13 @@ const App = () => {
   }, [])
 
   return (
-    <>
+    // 3. Wrap everything with QueryClientProvider
+    <QueryClientProvider client={queryClient}>
       <ChatBackgroundProvider>
         <NavigationContainer
           ref={navigationRef}
           onReady={() => {
             if (navigationRef.current) {
-              //  3. Single source of truth for all listeners
               notificationService.setupMessageListeners(navigationRef.current)
             }
           }}
@@ -53,11 +58,12 @@ const App = () => {
             <Stack.Screen name="ChatDrawer" component={ChatDrawer} options={{ headerShown: false }} />
             <Stack.Screen name="ChatBox" component={ChatBox} options={{ headerShown: false }} />
             <Stack.Screen name="ForgotPassword" component={ForgotPassword} options={{ headerShown: false }} />
+            <Stack.Screen name='Notification' component={Notification} options={{ headerShown: false }} />
           </Stack.Navigator>
         </NavigationContainer>
       </ChatBackgroundProvider>
       <Toast config={CustomToast} />
-    </>
+    </QueryClientProvider>
   )
 }
 

@@ -228,7 +228,8 @@ const Settings = () => {
                     <SettingsItem
                         title="Notifications"
                         leftIcon="bell"
-                        onPress={() => console.log('Notifications pressed')}
+                        // onPress={() => console.log('Notifications pressed')}
+                        onPress={() => navigation.navigate('Notification' as never)}
                         containerStyle={{ marginBottom: 10 }}
                     />
 

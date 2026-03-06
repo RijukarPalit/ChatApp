@@ -778,7 +778,6 @@ const ChatList: React.FC = () => {
         </View>
 
         {/* Floating Action Button (FAB) */}
-        {/* Floating Action Button (FAB) */}
         <TouchableOpacity
           style={[styles.fab, isCreatingGroup && styles.fabCreateMode]}
           onPress={() => {
@@ -799,8 +798,6 @@ const ChatList: React.FC = () => {
             {isCreatingGroup ? '✓' : (showAllUsers ? '×' : '+')}
           </Text>
         </TouchableOpacity>
-
-
       </ImageBackground>
     </View>
   )
